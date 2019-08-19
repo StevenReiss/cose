@@ -1,0 +1,34 @@
+<project name='cose.cosecommon' default='compile'>
+
+   <property name='PRO' value='/pro' />
+   <property name='COSE' value='/research/people/spr/cose' />
+   <property name='COSELIB' value='/research/people/spr/cose/lib' />
+   <property name='IVY' value='${PRO}/ivy/java' />
+   <property name='IVYLIB' value='${PRO}/ivy/lib' />
+
+
+   <path id='cose.classpath'>
+      <pathelement location='${COSE}/java' />
+      <pathelement location='${IVY}' />
+   </path>
+   <path id='test.classpath'>
+      <pathelement location='${COSE}/java' />
+      <pathelement location='${IVY}' />
+   </path>
+
+   <available file='/pro/java/linux/jdk1.8.0/jre/lib/rt.jar' type='file' property='j8'
+       value='/pro/java/linux/jdk1.8.0/jre/lib/rt.jar' />
+   <available file='/System/Library/Frameworks/JavaVM.framework/Versions/1.8/Classes/classes.jar'
+	type='file' property = 'j8' value='/System/Library/Frameworks/JavaVM.framework/Versions/1.8/Classes/classes.jar' />
+
+   <target name='compile'>
+      <javac srcdir='.' destdir='${COSE}/java' debug='on' deprecation='on'
+		target='1.8' source='1.8' bootclasspath='${j8}'
+		includeantruntime='false'>
+	 <classpath refid='cose.classpath' />
+      </javac>
+   </target>
+
+</project>
+
+
