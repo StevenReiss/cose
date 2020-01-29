@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseResultSet;
+import edu.brown.cs.cose.cosecommon.CoseSignature;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseRequest.CoseKeywordSet;
 
@@ -173,6 +174,7 @@ private class SimpleTestRequest implements CoseRequest, CoseResultSet {
    @Override public Set<String> getSpecificSources()    { return null; }
    @Override public boolean useAndroid()                { return false; }
    @Override public boolean doDebug()                   { return true; }
+   @Override public CoseSignature getCoseSignature()    { return null; }
    
    @Override public synchronized void addResult(CoseResult sr) {
       result_set.add(sr);

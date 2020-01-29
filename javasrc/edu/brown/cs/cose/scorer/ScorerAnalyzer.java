@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              ResultBase.java                                                 */
+/*              ScorerAnalyzer.java                                             */
 /*                                                                              */
-/*      description of class                                                    */
+/*      Code to analyze a potential fragment and score it                       */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -33,21 +33,41 @@
 
 
 
-package edu.brown.cs.cose.result;
+package edu.brown.cs.cose.scorer;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
+import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseScores;
-import edu.brown.cs.cose.cosecommon.CoseRequest;
-import edu.brown.cs.cose.cosecommon.CoseResource;
-import edu.brown.cs.cose.cosecommon.CoseSource;
-import edu.brown.cs.cose.scorer.ScorerAnalyzer;
+import edu.brown.cs.cose.cosecommon.CoseSignature;
+import edu.brown.cs.cose.cosecommon.CoseRequest.CoseKeywordSet;
 
-abstract class ResultBase implements CoseResult
+abstract public class ScorerAnalyzer implements ScorerConstants
 {
+
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Creation methods                                                        */
+/*                                                                              */
+/********************************************************************************/
+
+public static ScorerAnalyzer createAnalyzer(CoseRequest req)
+{
+   switch (req.getLanguage()) {
+      case JAVA :
+         return new ScorerAnalyzerJava(req);
+      case JAVASCRIPT :
+      case XML :
+         break;
+    }
+   
+   return null;
+}
+
+
 
 
 /********************************************************************************/
@@ -56,10 +76,9 @@ abstract class ResultBase implements CoseResult
 /*                                                                              */
 /********************************************************************************/
 
-private CoseSource fragment_source;
-private ResultBase parent_fragment;
-private Collection<CoseResource> resource_set;
-private CoseScores result_scores;
+private CoseRequest             base_request;
+
+protected CoseScores            value_map;
 
 
 
@@ -70,20 +89,10 @@ private CoseScores result_scores;
 /*                                                                              */
 /********************************************************************************/
 
-protected ResultBase(CoseSource src)
+protected ScorerAnalyzer(CoseRequest req)
 {
-   fragment_source = src;
-   parent_fragment = null;
-   resource_set = null;
-   result_scores = null;
-}
-
-
-protected ResultBase(ResultBase par,CoseSource src)
-{
-   fragment_source = src;
-   parent_fragment = par;
-   resource_set = null;
+   base_request = req;
+   value_map = new CoseScores();
 }
 
 
@@ -94,110 +103,39 @@ protected ResultBase(ResultBase par,CoseSource src)
 /*                                                                              */
 /********************************************************************************/
 
-@Override public ResultBase getParent()                 { return parent_fragment; }
-
-
-@Override public CoseSource getSource()
+protected CoseSearchType getSearchType()
 {
-   return fragment_source;
-}
-
-protected void setSource(CoseSource src)
-{
-   fragment_source = src;
-}
-
-@Override public CoseScores getScores(CoseRequest req)
-{
-   if (result_scores != null) return result_scores;
-   
-   ScorerAnalyzer sanal = ScorerAnalyzer.createAnalyzer(req);
-   CoseScores scores = sanal.analyzeProperties(this);
-   return scores;
+   return base_request.getCoseSearchType();
 }
 
 
-@Override public boolean addPackage(String pkg)                 { return false; }
-@Override public Collection<String> getPackages()               { return null; }
-@Override public String getBasePackage()                        { return null; }
-@Override public void addInnerResult(CoseResult cf)             { }
-@Override public Collection<CoseResult> getInnerResults()       { return null; }
 
-@Override public Collection<CoseResult> getResults(CoseSearchType t)        
+protected List<CoseKeywordSet> getKeywordSets()
 {
-   return null;
+   return base_request.getCoseKeywordSets();
 }
 
+
+protected CoseSignature getSignature()
+{
+   return base_request.getCoseSignature();
+}
 
 
 
 /********************************************************************************/
 /*                                                                              */
-/*      Resource methods                                                        */
+/*      Main analysis entry                                                     */
 /*                                                                              */
 /********************************************************************************/
 
-@Override public void addResource(CoseResource cr)
-{
-   if (resource_set == null) resource_set = new HashSet<>();
-   resource_set.add(cr);
-}
+abstract public CoseScores analyzeProperties(CoseResult cr);
 
 
-
-@Override public Collection<CoseResource> getResources()
-{
-   Collection<CoseResource> rslt = null;
-   if (parent_fragment != null) rslt = parent_fragment.getResources();
-   if (resource_set != null) {
-      if (rslt == null) rslt = new HashSet<>();
-      rslt.addAll(resource_set);
-    }
-   return rslt;
-}
-
-@Override public Set<String> getRelatedProjects()               { return null; }
-@Override public Set<String> getUsedProjects()                  { return null; }
-
-
-@Override public CoseResult cloneResult(Object diffs,Object data) 
-{
-   return baseCloneResult(diffs);
-}
-@Override public boolean isCloned()                             { return false; }
-
-@Override public Object clearStructure()                        { return null; }
-
-
-
-protected CoseResult baseCloneResult(Object diffs) 
-{
-   if (diffs instanceof ResultDelta) {
-      ResultDelta rd = (ResultDelta) diffs;
-      return new ResultCloned(this,rd);
-    }
-   else if (diffs == null) {
-      return new ResultCloned(this,null);
-    }
-   return null;
-}
-
-
-protected Object getDeltaStructure(ResultDelta rd)
-{
-   Object ds = rd.getDeltaStructure();
-   if (ds != null) return ds;
-   
-   return getStructure();
-}
+}       // end of class ScorerAnalyzer
 
 
 
 
-}       // end of class ResultBase
-
-
-
-
-/* end of ResultBase.java */
+/* end of ScorerAnalyzer.java */
 

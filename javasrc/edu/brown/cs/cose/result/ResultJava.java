@@ -797,6 +797,7 @@ static class JavaFileResult extends ResultFile {
     }
    
    @Override public Object getStructure()               { return ast_node; }
+   @Override public Object checkStructure()             { return ast_node; }
    
    @Override protected Object getDeltaStructure(ResultDelta rd) {
       return getDeltaJavaStructure(rd);
@@ -846,6 +847,7 @@ static class JavaMethodResult extends ResultPart {
    
    @Override public CoseResultType getResultType()      { return CoseResultType.METHOD; }
    @Override public Object getStructure()               { return method_node; }
+   @Override public Object checkStructure()             { return method_node; }
    @Override protected Object getDeltaStructure(ResultDelta rd) {
       return getDeltaJavaStructure(rd);
     }
@@ -881,6 +883,7 @@ static class JavaClassResult extends ResultPart {
 
    @Override public CoseResultType getResultType()      { return CoseResultType.CLASS; }
    @Override public Object getStructure()               { return ast_node; }
+   @Override public Object checkStructure()             { return ast_node; }
    @Override protected Object getDeltaStructure(ResultDelta rd) {
       return getDeltaJavaStructure(rd);
     }
@@ -926,6 +929,10 @@ static class JavaPackageResult extends ResultGroup {
        }
      return ast_node; 
     }  
+   
+   @Override public Object checkStructure() {
+      return getStructure();
+   } 
    @Override protected Object getDeltaStructure(ResultDelta rd) {
       return getDeltaJavaStructure(rd);
     }
@@ -981,21 +988,20 @@ static class JavaPackageResult extends ResultGroup {
       CompilationUnit root = null;
       
       for (CoseResult ff : inner_results) {
-	 CompilationUnit fn = (CompilationUnit) ff.getStructure();
-	 if (root == null) {
-	    AST nast = AST.newAST(AST.JLS8);
-	    root = (CompilationUnit) ASTNode.copySubtree(nast,fn);
-	    // root_node = fn;
-	  }
-	 else root = mergeIntoAst(root,fn,used_packages);
+         CompilationUnit fn = (CompilationUnit) ff.getStructure();
+         if (root == null) {
+            AST nast = JcompAst.createNewAst();
+            root = (CompilationUnit) ASTNode.copySubtree(nast,fn);
+          }
+         else root = mergeIntoAst(root,fn,used_packages);
        }
       if (used_packages.size() == 0) {
-	 PackageDeclaration pd = root.getPackage();
-	 if (pd != null) {
-	    String pnm = pd.getName().getFullyQualifiedName();
-	    base_package = pnm;
-	    used_packages.add(pnm);
-	  }
+         PackageDeclaration pd = root.getPackage();
+         if (pd != null) {
+            String pnm = pd.getName().getFullyQualifiedName();
+            base_package = pnm;
+            used_packages.add(pnm);
+          }
        }
       // is this really needed?
       source_text = root.toString();

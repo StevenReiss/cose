@@ -31,6 +31,8 @@ static public CoseMaster createMaster(CoseRequest req)
       return cr;
     }
    catch (Exception e) {
+      System.err.println("Can't create COSE Master: " + e);
+      e.printStackTrace();
       return null;
     }
 }

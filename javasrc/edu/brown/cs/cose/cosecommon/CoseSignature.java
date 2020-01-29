@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              CoseRequest.java                                                */
+/*              CoseSignature.java                                              */
 /*                                                                              */
-/*      External representation of a request for searching                      */
+/*      Generic signature (optional) for search                                 */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -36,34 +36,48 @@
 package edu.brown.cs.cose.cosecommon;
 
 import java.util.List;
-import java.util.Set;
 
-public interface CoseRequest extends CoseConstants
+public interface CoseSignature
 {
 
-int getNumberOfThreads();
-int getNumberOfResults();
+String getName();
 
-CoseSearchType getCoseSearchType();
-CoseScopeType getCoseScopeType();
-List<CoseKeywordSet> getCoseKeywordSets();
-CoseSearchLanguage getLanguage();
-Set<CoseSearchEngine> getEngines();
-Set<String> getSpecificSources();
-CoseSignature getCoseSignature();
 
-boolean useAndroid();  
-
-boolean doDebug();
-
-interface CoseKeywordSet {
-   List<String> getWords();
+static interface CosePackageSignature extends CoseSignature {
+   List<CoseClassSignature> getCoseClasses();
 }
 
-}       // end of interface CoseRequest
+
+static interface CoseClassSignature extends CoseSignature {
+   List<CoseMethodSignature> getCoseMethods();
+   List<CoseFieldSignature> getCoseFields();
+   boolean isInterface();
+   String getSuperClass();
+   List<String> getInterfaces();
+}
+
+
+static interface CoseMethodSignature extends CoseSignature {
+   String getReturnTypeName();
+   List<String> getParameterTypeNames();
+   List<String> getExceptionTypeNames();
+   List<String> getParameterNames();
+   boolean isStatic();
+   boolean isAbstract();
+}
+
+
+static interface CoseFieldSignature extends CoseSignature {
+   String getTypeName();
+   boolean isStatic();
+}
+
+
+
+}       // end of interface CoseSignature
 
 
 
 
-/* end of CoseRequest.java */
+/* end of CoseSignature.java */
 

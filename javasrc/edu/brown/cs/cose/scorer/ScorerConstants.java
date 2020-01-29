@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              CoseRequest.java                                                */
+/*              ScorerConstants.java                                            */
 /*                                                                              */
-/*      External representation of a request for searching                      */
+/*      Constants for scoring potential search candidates                       */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -33,37 +33,20 @@
 
 
 
-package edu.brown.cs.cose.cosecommon;
+package edu.brown.cs.cose.scorer;
 
-import java.util.List;
-import java.util.Set;
+import edu.brown.cs.cose.cosecommon.CoseConstants;
 
-public interface CoseRequest extends CoseConstants
+public interface ScorerConstants extends CoseConstants
 {
 
-int getNumberOfThreads();
-int getNumberOfResults();
 
-CoseSearchType getCoseSearchType();
-CoseScopeType getCoseScopeType();
-List<CoseKeywordSet> getCoseKeywordSets();
-CoseSearchLanguage getLanguage();
-Set<CoseSearchEngine> getEngines();
-Set<String> getSpecificSources();
-CoseSignature getCoseSignature();
 
-boolean useAndroid();  
 
-boolean doDebug();
-
-interface CoseKeywordSet {
-   List<String> getWords();
-}
-
-}       // end of interface CoseRequest
+}       // end of interface ScorerConstants
 
 
 
 
-/* end of CoseRequest.java */
+/* end of ScorerConstants.java */
 

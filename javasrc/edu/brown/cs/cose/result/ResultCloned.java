@@ -100,6 +100,11 @@ ResultCloned(ResultBase base,ResultDelta delta)
    return structure_data;
 }
 
+@Override public Object checkStructure()
+{
+   return structure_data;
+}
+
 @Override public Object clearStructure()
 {
    Object rslt = structure_data;

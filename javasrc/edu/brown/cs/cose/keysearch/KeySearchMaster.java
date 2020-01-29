@@ -36,8 +36,16 @@
 package edu.brown.cs.cose.keysearch;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.URI;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -64,6 +72,8 @@ import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResource;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.cose.result.ResultFactory;
+import edu.brown.cs.cose.scorer.ScorerAnalyzer;
+
 import edu.brown.cs.ivy.xml.IvyXml;
 
 
@@ -79,16 +89,19 @@ public class KeySearchMaster implements KeySearchConstants, CoseMaster
 /********************************************************************************/
 
 private List<KeySearchRepo>	search_repos;
-private ThreadPool              thread_pool;
-private CoseRequest     	cose_request;
-private CoseResultSet           result_set;
+private ThreadPool		thread_pool;
+private CoseRequest		cose_request;
+private CoseResultSet		result_set;
 private Map<CoseSource,Map<String,Set<String>>> package_items;
-private Set<CoseSource>         used_sources;
+private Set<CoseSource> 	used_sources;
 private ResultFactory           result_factory;
-
+private PrintWriter             score_data_file;
+private FileChannel             score_channel;
 
 
 private static final Set<String> RESOURCE_EXTENSIONS;
+
+
 
 static {
    RESOURCE_EXTENSIONS = new HashSet<String>();
@@ -143,6 +156,21 @@ public KeySearchMaster(CoseRequest req)
    package_items = new HashMap<CoseSource,Map<String,Set<String>>>();
    used_sources = new HashSet<>();
    result_factory = new ResultFactory(req);
+   
+   score_data_file = null;
+   score_channel = null;
+   try {
+      File f = new File(SCORE_DATA_FILE);
+      if (f.exists()) {
+         FileOutputStream fos = new FileOutputStream(SCORE_DATA_FILE,true);
+         score_channel = fos.getChannel();
+         score_data_file = new PrintWriter(new OutputStreamWriter(fos));
+       }
+    }
+   catch (IOException e) {
+      score_data_file = null;
+      score_channel = null;
+    }
 }
 
 
@@ -156,7 +184,7 @@ public KeySearchMaster(CoseRequest req)
 @Override public void computeSearchResults(CoseResultSet crs)
 {
    result_set = crs;
-   
+
    Iterable<String> spsrc = cose_request.getSpecificSources();
    if (spsrc != null) {
       for (String src : spsrc) {
@@ -201,6 +229,41 @@ private boolean getSpecificSolutionFromRepo(KeySearchRepo repo,String src)
    return false;
 }
 
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Handle result analysis                                                  */
+/*                                                                              */
+/********************************************************************************/
+
+private void analyzeResult(CoseResult cr)
+{
+   ScorerAnalyzer scorer = ScorerAnalyzer.createAnalyzer(cose_request);
+   Map<String,Object> props = scorer.analyzeProperties(cr);
+   
+   if (score_data_file != null) {
+      synchronized (score_data_file) {
+         try {
+            FileLock lock = score_channel.lock(); 
+            try {
+               score_data_file.println("-----------------------------------" + new Date());
+               score_data_file.println("SOURCE: " + cr.getSource().getName());
+               for (Map.Entry<String,Object> ent : props.entrySet()) {
+                  if (ent.getValue() != null) {
+                     score_data_file.println(ent.getKey() + ": " + ent.getValue().toString());
+                   }
+                }
+               score_data_file.flush();
+             }
+            finally {
+               lock.release();
+             }
+          }
+         catch (IOException e) { }
+       }
+    }
+}
 
 
 /********************************************************************************/
@@ -315,10 +378,11 @@ private void addSolutions(String code,CoseSource source)
 {
    if (source != null && !useSource(source)) return;
    if (source != null) used_sources.add(source);
-   
+
    CoseResult cr = result_factory.createFileResult(source,code);
    if (cr == null) return;
    for (CoseResult subfrag : cr.getResults(cose_request.getCoseSearchType())) {
+      analyzeResult(subfrag);
       result_set.addResult(subfrag);
     }
 }
@@ -684,21 +748,21 @@ private class AndroidClassLoader implements Runnable {
    private KeySearchQueue sub_waits;
 
    AndroidClassLoader(KeySearchRepo repo,CoseSource src,String pkg,String cls,CoseResult pfrag,
-         KeySearchQueue subwaits) {
+	 KeySearchQueue subwaits) {
       for_repo = repo;
       manifest_source = src;
       package_result = pfrag;
       sub_waits = subwaits;
       Map<String,Set<String>> sitms = package_items.get(src);
       local_items = sitms.get(pkg);
-   
+
       String pfx = pkg;
       if (cls.startsWith(".")) cls = cls.substring(1);
       int idx = cls.lastIndexOf(".");
       if (idx > 0) {
-         if (pkg == null) pfx = cls.substring(0,idx);
-         else pfx = pkg + "." + cls.substring(0,idx);
-         cls = cls.substring(idx+1);
+	 if (pkg == null) pfx = cls.substring(0,idx);
+	 else pfx = pkg + "." + cls.substring(0,idx);
+	 cls = cls.substring(idx+1);
        }
       package_name = pfx;
       class_name = cls;
@@ -707,30 +771,30 @@ private class AndroidClassLoader implements Runnable {
 
    @Override public void run() {
       KeySearchClassData kcd = for_repo.getPackageClassResult(manifest_source,
-            package_name,class_name,page_number);
-   
+	    package_name,class_name,page_number);
+
       if (kcd != null && kcd.getURI() != null) {
-         synchronized (local_items) {
-            if (!local_items.add(kcd.getSource().getName())) {
-               return;
-             }	
-          }
-         try {
-            CoseResult rslt = result_factory.createFileResult(kcd.getSource(),kcd.getCode());
-            if (rslt == null) return;
-            package_result.addInnerResult(rslt);
-          }
-         catch (Throwable t) {
-            System.err.println("PACKAGE PROBLEM: " + t);
-            t.printStackTrace();
-          }
+	 synchronized (local_items) {
+	    if (!local_items.add(kcd.getSource().getName())) {
+	       return;
+	     }
+	  }
+	 try {
+	    CoseResult rslt = result_factory.createFileResult(kcd.getSource(),kcd.getCode());
+	    if (rslt == null) return;
+	    package_result.addInnerResult(rslt);
+	  }
+	 catch (Throwable t) {
+	    System.err.println("PACKAGE PROBLEM: " + t);
+	    t.printStackTrace();
+	  }
        }
       else {
-         System.err.println("Cose: ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
-         if (kcd != null) {
-            ++page_number;
-            addSubtask(this,sub_waits);
-          }
+	 System.err.println("Cose: ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
+	 if (kcd != null) {
+	    ++page_number;
+	    addSubtask(this,sub_waits);
+	  }
        }
     }
 
@@ -811,7 +875,7 @@ private class ScanPackageSearchResults implements Runnable {
    private KeySearchQueue package_queue;
 
    ScanPackageSearchResults(KeySearchRepo repo,String pkg,CoseSource pkgsrc,
-         CoseResult pkgfrag,KeySearchQueue pkgq) {
+	 CoseResult pkgfrag,KeySearchQueue pkgq) {
       for_repo = repo;
       project_id = pkgsrc.getProjectId();
       package_name = pkg;
@@ -826,14 +890,14 @@ private class ScanPackageSearchResults implements Runnable {
       boolean more = for_repo.getClassesInPackage(package_name,project_id,page_number,uris);
       if (uris == null || uris.size() == 0) return;
       for (URI u : uris) {
-         LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
-         addSubtask(lrp,package_queue);
+	 LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
+	 addSubtask(lrp,package_queue);
        }
-   
+
       // if (for_repo.hasMoreResults(uri,rslts))
       if (page_number < 10 && more) {
-         ++page_number;
-         addSubtask(this,package_queue);
+	 ++page_number;
+	 addSubtask(this,package_queue);
        }
     }
 
@@ -850,7 +914,7 @@ private class LoadPackageResult implements Runnable {
    private CoseSource package_source;
 
    LoadPackageResult(KeySearchRepo repo,URI uri,String pkg,CoseResult pkgfrag,
-         CoseSource pkgsrc) {
+	 CoseSource pkgsrc) {
       for_repo = repo;
       page_uri = uri;
       package_name = pkg;
@@ -865,19 +929,19 @@ private class LoadPackageResult implements Runnable {
       String pkg = findPackageName(code);
       if (!pkg.equals(package_name)) return;
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
-         String ext = findExtendsName(code);
-         boolean isui = false;
-         if (ext != null) {
-            if (ext.equals("Result") || ext.equals("Fragment") || ext.equals("Activity")) {
-               isui = true;
-             }
-          }
-         if (!isui) return;
+	 String ext = findExtendsName(code);
+	 boolean isui = false;
+	 if (ext != null) {
+	    if (ext.equals("Result") || ext.equals("Fragment") || ext.equals("Activity")) {
+	       isui = true;
+	     }
+	  }
+	 if (!isui) return;
        }
       if (cose_request.getCoseSearchType() == CoseSearchType.ANDROIDUI) {
-         String cls = findClassName(code);
-         if (cls != null && cls.equals("R")) return;
-         if (cls != null && cls.equals("BuildConfig")) return;
+	 String cls = findClassName(code);
+	 if (cls != null && cls.equals("R")) return;
+	 if (cls != null && cls.equals("BuildConfig")) return;
        }
       addPackageSolution(code,package_source,src,package_result);
     }
@@ -912,42 +976,42 @@ private class FinishPackageTask implements Runnable {
 
    @Override public void run() {
       if (!checkIfDone(package_queue)) {
-         // try again later
-         addTask(this);
-         return;
+	 // try again later
+	 addTask(this);
+	 return;
        }
-      
+
       // here is were we extend the solution to include other packages
       Set<String> pkgs = null;
-   
+
       switch (cose_request.getCoseScopeType()) {
-         case SYSTEM :
-            pkgs = package_result.getRelatedProjects();
-            break;
-         case PACKAGE :
-            pkgs = package_result.getUsedProjects();
-            break;
-         default :
-            break;
+	 case SYSTEM :
+	    pkgs = package_result.getRelatedProjects();
+	    break;
+	 case PACKAGE :
+	    pkgs = package_result.getUsedProjects();
+	    break;
+	 default :
+	    break;
        }
-   
+
       if (pkgs != null) {
-         if (cose_request.getCoseSearchType() != CoseSearchType.ANDROIDUI && retry_count > 0) {
-            for (Iterator<String> it = pkgs.iterator(); it.hasNext(); ) {
-               String p = it.next();
-               if (!package_result.addPackage(p)) it.remove();
-             }
-          }
-         if (pkgs.size() > 0) {
-            for (String pkg : pkgs) {
-               ScanPackageSearchResults spsr = new ScanPackageSearchResults(for_repo,pkg,
-        	     package_source,package_result,package_queue);
-               addSubtask(spsr,package_queue);
-             }
-            ++retry_count;
-            addTask(this);
-            return;
-          }
+	 if (cose_request.getCoseSearchType() != CoseSearchType.ANDROIDUI && retry_count > 0) {
+	    for (Iterator<String> it = pkgs.iterator(); it.hasNext(); ) {
+	       String p = it.next();
+	       if (!package_result.addPackage(p)) it.remove();
+	     }
+	  }
+	 if (pkgs.size() > 0) {
+	    for (String pkg : pkgs) {
+	       ScanPackageSearchResults spsr = new ScanPackageSearchResults(for_repo,pkg,
+		     package_source,package_result,package_queue);
+	       addSubtask(spsr,package_queue);
+	     }
+	    ++retry_count;
+	    addTask(this);
+	    return;
+	  }
        }
     }
 
@@ -1069,48 +1133,55 @@ private static class AndroidResource implements CoseResource {
 
 
 /********************************************************************************/
-/*                                                                              */
-/*      Thread pool for executing searches                                      */
-/*                                                                              */
+/*										*/
+/*	Thread pool for executing searches					*/
+/*										*/
 /********************************************************************************/
 
 private static AtomicInteger thread_counter = new AtomicInteger(0);
 
 
 private class ThreadPool extends ThreadPoolExecutor implements ThreadFactory {
-   
+
    private int exec_count;
-   
+
    ThreadPool(int nth) {
       super(nth/2,nth,5000L,TimeUnit.MILLISECONDS,new LinkedBlockingDeque<Runnable>());
       setThreadFactory(this);
       exec_count = 0;
     }
-   
+
    @Override public Thread newThread(Runnable r) {
-      return new Thread(r,"Cose_Search_" + thread_counter.incrementAndGet());
+      Thread th = new Thread(r,"Cose_Search_" + thread_counter.incrementAndGet());
+      th.setDaemon(true);
+      return th;
     }
-   
+
    @Override public void execute(Runnable r) {
       ++exec_count;
       super.execute(r);
     }
-   
+
    @Override protected synchronized void afterExecute(Runnable r,Throwable t) {
+      super.afterExecute(r,t);
       --exec_count;
       if (exec_count <= 0) notifyAll();
-    }
-   
-   synchronized void waitForAll() {
-      while (getQueue().size() > 0 || exec_count > 0) {
-         try {
-            wait(2000);
-          }  
-         catch (InterruptedException e) { }
+      if (t != null) {
+         System.err.println("COSE: Problem during search: " + t);
+         t.printStackTrace();
        }
     }
-   
-}       // end of inner class ThreadPool
+
+   synchronized void waitForAll() {
+      while (getQueue().size() > 0 || exec_count > 0) {
+	 try {
+	    wait(2000);
+	  }
+	 catch (InterruptedException e) { }
+       }
+    }
+
+}	// end of inner class ThreadPool
 
 
 }	// end of class KeySearchMaster

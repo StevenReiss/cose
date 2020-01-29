@@ -91,6 +91,8 @@ enum CoseResultType {
 
 String LICENSE_DATABASE = "s6";
 
+String SCORE_DATA_FILE = "/ws/volfred/s6/scores.data";
+
 }	// end of interface CoseConstants
 
 

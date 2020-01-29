@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              CoseRequest.java                                                */
+/*              CoseScores.java                                                 */
 /*                                                                              */
-/*      External representation of a request for searching                      */
+/*      Holder for result scoring information                                   */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -35,35 +35,74 @@
 
 package edu.brown.cs.cose.cosecommon;
 
-import java.util.List;
-import java.util.Set;
+import java.util.HashMap;
 
-public interface CoseRequest extends CoseConstants
+public class CoseScores extends HashMap<String,Object> implements CoseConstants
 {
 
-int getNumberOfThreads();
-int getNumberOfResults();
 
-CoseSearchType getCoseSearchType();
-CoseScopeType getCoseScopeType();
-List<CoseKeywordSet> getCoseKeywordSets();
-CoseSearchLanguage getLanguage();
-Set<CoseSearchEngine> getEngines();
-Set<String> getSpecificSources();
-CoseSignature getCoseSignature();
+/********************************************************************************/
+/*                                                                              */
+/*      Private Storage                                                         */
+/*                                                                              */
+/********************************************************************************/
 
-boolean useAndroid();  
+private static final long serialVersionUID = 1;
 
-boolean doDebug();
 
-interface CoseKeywordSet {
-   List<String> getWords();
+/********************************************************************************/
+/*                                                                              */
+/*      Constructors                                                            */
+/*                                                                              */
+/********************************************************************************/
+
+public CoseScores()
+{ }
+
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Access methods                                                          */
+/*                                                                              */
+/********************************************************************************/
+
+public String getString(String v)
+{
+   Object o = get(v);
+   if (o == null) return null;
+   return o.toString();
 }
 
-}       // end of interface CoseRequest
+
+public int getInt(String v)
+{
+   Number n = (Number) get(v);
+   if (n == null) return 0;
+   return n.intValue();
+}
+
+
+public double getDouble(String v)
+{
+   Number n = (Number) get(v);
+   if (n == null) return 0;
+   return n.doubleValue();
+}
+
+
+public boolean getBoolean(String v)
+{
+   Boolean x = (Boolean) get(v);
+   if (x == null) return false;
+   return x.booleanValue();
+}
+
+
+}       // end of class CoseScores
 
 
 
 
-/* end of CoseRequest.java */
+/* end of CoseScores.java */
 

@@ -227,7 +227,7 @@ List<URI> getSearchPageResults(URI uri,String cnts)
       else jarr = new JSONArray();
       for (int i = 0; i < jarr.length(); ++i) {
 	 JSONObject jobj = jarr.getJSONObject(i);
-	 System.err.println("RESULT: " + jobj);
+	 // System.err.println("RESULT: " + jobj);
 	 URI uri2 = convertSearchResults(jobj);
 	 if (uri2 != null) rslt.add(uri2);
        }

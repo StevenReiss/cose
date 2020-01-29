@@ -63,11 +63,14 @@ Collection<CoseResult> getInnerResults();
 Set<String> getRelatedProjects();
 Set<String> getUsedProjects();
 
-Object getStructure();          // ASTNode, Element, ...
+Object getStructure();          // ASTNode, Element, .
+Object checkStructure();
 Object clearStructure();
 
 CoseResult cloneResult(Object diffs,Object data);
 boolean isCloned();
+
+CoseScores getScores(CoseRequest req);
 
 }       // end of interface CoseResult
 
