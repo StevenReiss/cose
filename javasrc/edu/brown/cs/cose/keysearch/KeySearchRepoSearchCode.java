@@ -46,6 +46,7 @@ import org.json.JSONObject;
 
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.file.IvyLog;
 
 
 class KeySearchRepoSearchCode extends KeySearchRepo
@@ -130,6 +131,7 @@ KeySearchRepoSearchCode(CoseRequest sr)
    q += "q=";
    int i = 0;
    for (String s : keys) {
+      s = normalizeKeyword(s);
       if (i++ > 0) q += " ";
       if (s.contains(" ")) q += "\"" + s + "\"";
       else q += s;
@@ -169,11 +171,9 @@ List<URI> getSearchPageResults(URI uri,String cnts)
    List<URI> rslt = new ArrayList<URI>();
    try {
       JSONObject srslt = new JSONObject(cnts);
-      // System.err.println("TOP RESULT: " + srslt);
       JSONArray jarr = srslt.getJSONArray("results");
       for (int i = 0; i < jarr.length(); ++i) {
 	 JSONObject jobj = jarr.getJSONObject(i);
-	 // System.err.println("RESULT: " + jobj);
 	 URI uri2 = null;
 	 try {
 	    String urls = jobj.getString("url");
@@ -189,12 +189,12 @@ List<URI> getSearchPageResults(URI uri,String cnts)
 	    rslt.add(uri2);
 	  }
 	 catch (URISyntaxException e) {
-	    System.err.println("BAD URI: " + e);
+	    IvyLog.logE("COSE","BAD URI: " + e);
 	  }
        }
     }
    catch (JSONException e) {
-      System.err.println("Cose: Problem parsing github json return: " + e);
+      IvyLog.logE("COSE","Problem parsing github json return: " + e);
     }
 
    return rslt;
@@ -225,7 +225,7 @@ List<URI> getSearchPageResults(URI uri,String cnts)
       if (srslt.get("nextpage") != null) return true;
     }
    catch (JSONException e) {
-      System.err.println("Cose: Problem parsing github json return: " + e);
+      IvyLog.logE("COSE","Problem parsing github json return: " + e);
     }
 
    return false;

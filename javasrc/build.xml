@@ -4,8 +4,8 @@
    <target name='all'>
       <ant antfile="build.xml" dir="edu/brown/cs/cose/cosecommon" />
       <ant antfile="build.xml" dir="edu/brown/cs/cose/license" />
-      <ant antfile="build.xml" dir="edu/brown/cs/cose/result" />
       <ant antfile="build.xml" dir="edu/brown/cs/cose/scorer" />
+      <ant antfile="build.xml" dir="edu/brown/cs/cose/result" />
       <ant antfile="build.xml" dir="edu/brown/cs/cose/keysearch" />
    </target>
 

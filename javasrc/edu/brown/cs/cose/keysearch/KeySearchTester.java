@@ -129,6 +129,34 @@ public void searchTest4()
 
 
 
+@Test
+public void searchTest5()
+{
+   SimpleTestRequest tr2;
+   KeySearchMaster ksm;
+   List<CoseResult> rslt;
+   
+   tr2 = new SimpleTestRequest("contact","@management");
+   tr2.setSearchType(CoseSearchType.PACKAGE);
+   tr2.setScopeType(CoseScopeType.PACKAGE);
+   tr2.setSearchEngines(CoseSearchEngine.GITREPO);
+   ksm = new KeySearchMaster(tr2);
+   ksm.computeSearchResults(tr2);
+   rslt = tr2.getResults();
+   Assert.assertTrue(rslt.size() >= 1);
+   
+   tr2 = new SimpleTestRequest("@embedded","@web","server");
+   tr2.setSearchType(CoseSearchType.PACKAGE);
+   tr2.setScopeType(CoseScopeType.PACKAGE);
+   tr2.setSearchEngines(CoseSearchEngine.GITREPO);
+   ksm = new KeySearchMaster(tr2);
+   ksm.computeSearchResults(tr2);
+   rslt = tr2.getResults();
+   Assert.assertTrue(rslt.size() >= 1);
+}
+
+
+
 /********************************************************************************/
 /*                                                                              */
 /*      Dummy request structure                                                 */
@@ -175,6 +203,7 @@ private class SimpleTestRequest implements CoseRequest, CoseResultSet {
    @Override public boolean useAndroid()                { return false; }
    @Override public boolean doDebug()                   { return true; }
    @Override public CoseSignature getCoseSignature()    { return null; }
+   @Override public List<String> getKeyTerms()          { return new ArrayList<>(); }
    
    @Override public synchronized void addResult(CoseResult sr) {
       result_set.add(sr);

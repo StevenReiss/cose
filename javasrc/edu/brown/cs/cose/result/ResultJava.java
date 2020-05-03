@@ -68,8 +68,10 @@ import org.eclipse.text.edits.TextEdit;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.Document;
 
+import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.ivy.jcomp.JcompAst;
 import edu.brown.cs.ivy.jcomp.JcompType;
+import edu.brown.cs.cose.cosecommon.CoseConstants;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 
@@ -130,8 +132,7 @@ static JavaDelta getEditedText(ResultBase rslt,ASTRewrite rw,ITrackedNodePositio
     }
    catch (Throwable t) {
       // this yields java.lang.IllegalArgumentException: Document does not match the AST
-      System.err.println("Problem rewriting AST: " + t);
-      t.printStackTrace();
+      IvyLog.logE("COSE","Problem rewriting AST for result",t);
     }
    int nodestart = pos.getStartPosition();
    int nodelength = pos.getLength();
@@ -142,8 +143,7 @@ static JavaDelta getEditedText(ResultBase rslt,ASTRewrite rw,ITrackedNodePositio
       nodelength = pos.getLength();
     }
    catch (BadLocationException e) {
-      System.err.println("Text Delta problem: " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Text Delta problem",e);
     }
   return new JavaDelta(rslt,d.get(),nodestart,nodelength);
 }
@@ -678,9 +678,8 @@ private static boolean importFromPackage(ImportDeclaration id,Set<String> pkgs)
       
       if (!fq.startsWith(pkg)) continue;
       int idx = pkg.length();
-      if (fq.length() <= idx) continue;
-      if (fq.charAt(idx) != '.') continue;
       if (fq.length() <= idx+2) continue;
+      if (fq.charAt(idx) != '.') continue;
       String rnm = fq.substring(idx+1);
       if (Character.isUpperCase(rnm.charAt(0)) && rnm.indexOf(".") < 0) return true;
     }
@@ -699,6 +698,7 @@ private static String getImportRename(ImportDeclaration id,String pnm,Set<String
       if (id.isOnDemand()) continue;
       if (!fq.startsWith(pkg)) continue;
       int idx = pkg.length();
+      if (fq.length() <= idx) continue;
       if (fq.charAt(idx) != '.') continue;
       if (fq.length() <= idx+2) continue;
       String rnm = fq.substring(idx+1);
@@ -745,19 +745,7 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
 	 inm = inm.substring(0,idx);
        }
       if (inm.equals(nm)) continue;
-      if (inm.startsWith(nm)) rslt.add(inm);
-      else if (nm.startsWith(inm)) rslt.add(inm);
-      else {
-	 int idx = -1;
-	 for (int i = 0; i < 3; ++i) {
-	    idx = nm.indexOf(".",idx+1);
-	    if (idx < 0) break;
-	  }
-	 if (idx >= 0 && idx < inm.length() &&
-               nm.substring(0,idx).equals(inm.substring(0,idx))) {
-	    rslt.add(inm);
-	  }
-       }
+      if (CoseConstants.isRelatedPackage(nm,inm)) rslt.add(inm);
     }
    
    return rslt;

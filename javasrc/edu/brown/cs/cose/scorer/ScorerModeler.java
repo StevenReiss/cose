@@ -144,7 +144,6 @@ private void getPropertySet()
          if (key.equals("SOURCE")) {
             cursource = new SourceData(val);
             source_map.put(val,cursource);
-            // System.err.println("SCORERMODEL: Save source " + val);
             continue;
           }
          String typ = null;

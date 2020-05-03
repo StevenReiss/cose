@@ -48,10 +48,11 @@ import org.jsoup.nodes.*;
 import edu.brown.cs.cose.cosecommon.CoseException;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.file.IvyLog;
 
 
 
-abstract class KeySearchRepo implements KeySearchConstants
+abstract class KeySearchRepo implements KeySearchConstants, KeySearchConstants.KeySearchAuthorizer
 {
 
 
@@ -69,7 +70,7 @@ protected CoseRequest   cose_request;
 private static final int MAX_RETRY = 5;
 
 private static boolean do_debug;
-protected static KeySearchCache url_cache = new KeySearchCache();
+protected static KeySearchCache url_cache = KeySearchCache.getCache();
 
 
 
@@ -101,7 +102,7 @@ abstract URI getURIFromSourceString(String source);
 
 int getResultsPerPage() 			{ return 10; }
 
-String getAuthorization()			{ return null; }
+@Override public String getAuthorization()      { return null; }
 
 abstract URI getURIForSearch(List<String> keywords,CoseSearchLanguage lang,String projectid,int page);
 
@@ -142,6 +143,14 @@ boolean hasMoreSearchPages(URI uri,String cnts,int page)
 
 
 boolean hasMoreSearchPages(Element jsoup,int page)	{ return true; }
+
+
+protected String normalizeKeyword(String s)
+{
+   if (s.startsWith("@") || s.startsWith("^") || s.startsWith("!")) return s.substring(1);
+   return s;
+}
+
 
 
 
@@ -251,7 +260,7 @@ List<URI> getDirectoryContentsURIs(URI baseuri,CoseSource src,Element jsoup)
 
 boolean getClassesInPackage(String pkg,String project,int page,List<URI> rslt)
 {
-   System.err.println("SEARCH FOR PACKAGE " + pkg);
+   IvyLog.logD("COSE","SEARCH FOR PACKAGE " + pkg);
    List<String> keys = new ArrayList<String>();
    keys.add("package " + pkg);
    URI uri = getURIForSearch(keys,cose_request.getLanguage(),project,page);
@@ -363,17 +372,17 @@ final ByteArrayOutputStream getResultBytes(URI uri)
    try {
       boolean retry = false;
       for (int i = 0; i < MAX_RETRY; ++i) {
-	 if (i > 0) System.err.println("S6: Retry " + i + " " + uri);
+	 if (i > 0) IvyLog.logI("COSE","Retry " + i + " " + uri);
 	 try {
 	    long start = System.currentTimeMillis();
-	    page = loadURIBinary(uri,getAuthorization(),true,retry);
+	    page = loadURIBinary(uri,true,retry);
 	    long delta = System.currentTimeMillis() - start;
 	    if (!shouldRetry(page,delta)) break;
 	  }
 	 catch (CoseException e) {
 	    if (i == MAX_RETRY-1) return null;
 	    if (!shouldRetry(e)) {
-	       if (i == 0) System.err.println("S6: Exception on load : " + e);
+	       if (i == 0) IvyLog.logE("COSE","Exception on load : " + e);
 	       return null;
 	     }
 	  }
@@ -411,16 +420,16 @@ static String getString(ByteArrayOutputStream baos)
 
 
 
-protected ByteArrayOutputStream loadURIBinary(URI uri,String auth,boolean cache,boolean reread)
+protected ByteArrayOutputStream loadURIBinary(URI uri,boolean cache,boolean reread)
 	throws CoseException
 {
-   if (do_debug) System.err.println("S6: KEYSEARCH: LOAD: " + uri + " " + cache);
+   if (do_debug) IvyLog.logD("COSE","LOAD: " + uri + " " + cache);
 
    ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
    try {
       URL url = uri.toURL();
-      InputStream br = url_cache.getInputStream(url,auth,cache,reread);
+      InputStream br = url_cache.getInputStream(url,this,cache,reread); 
       byte [] buf = new byte[8192];
       for ( ; ; ) {
 	 int ln = br.read(buf);

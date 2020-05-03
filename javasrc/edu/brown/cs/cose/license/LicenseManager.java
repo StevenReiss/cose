@@ -45,7 +45,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import edu.brown.cs.ivy.file.IvyDatabase;
-
+import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.cose.cosecommon.CoseConstants;
 import edu.brown.cs.cose.cosecommon.CoseLicense;
 
@@ -149,7 +149,7 @@ private void checkDatabase()
    catch (SQLException e) {
       skip_count = 20;
       have_database = false;
-      System.err.println("COSE:LICENSE: Can't connect to any database for licensing: " + e);
+      IvyLog.logI("COSE","Can't connect to any database for licensing: " + e);
       return;
     }
    
@@ -167,7 +167,7 @@ private void checkDatabase()
       dconn.close();
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Can't create new database for licensing: " + e);
+      IvyLog.logE("COSE","Can't create new database for licensing: " + e);
       skip_count = 100;
       have_database = false;
       return;
@@ -177,7 +177,7 @@ private void checkDatabase()
       sql_conn = IvyDatabase.openDatabase(LICENSE_DATABASE);
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Can't open database for licensing: " + e);
+      IvyLog.logE("COSE","Can't open database for licensing: " + e);
       skip_count = 10;
       have_database = false;
       return;
@@ -191,14 +191,14 @@ private void checkDatabase()
       st.close();
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Can't set up database for licensing: " + e);
+      IvyLog.logE("COSE","Can't set up database for licensing: " + e);
       sql_conn = null;
       have_database = false;
       skip_count = 10;
       return;
     }
    
-   System.err.println("COSE:LICENSE: Database successfully created");
+   IvyLog.logI("COSE","License Database successfully created");
    have_database = true;
    skip_count = 0;
 }
@@ -219,7 +219,7 @@ public String getLicenseUidFromSource(String source)
       return getLicenseUid(lic);
     }
    catch (IOException e) {
-      System.err.println("COSE:LICENSE: Problem reading source: " + e);
+      IvyLog.logE("COSE","Problem reading source for license: " + e);
     }
    
    return null;
@@ -264,7 +264,7 @@ public String getLicenseUid(String lic)
       rs.close();
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Problem accessing sql result: " + e);
+      IvyLog.logE("COSE","Problem accessing sql result for license: " + e);
     }
    
    openDatabase();
@@ -285,7 +285,7 @@ public String getLicenseUid(String lic)
 	    st.executeUpdate("COMMIT");
 	  }
 	 catch (SQLException e) {
-	    System.err.println("COSE:LICENSE: Problem setting next license id: " + e);
+	    IvyLog.logE("COSE","Problem setting next license id: " + e);
 	  }
        }
     }
@@ -314,7 +314,7 @@ public String getLicense(String uid)
       rs.close();
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Problem accessing license result: " + e);
+      IvyLog.logE("COSE","Problem accessing license result: " + e);
     }
    
    return lic;
@@ -342,7 +342,7 @@ private synchronized ResultSet queryDatabase(String q)
       rs = stmt.executeQuery(q);
     }
    catch (SQLException e) {
-      System.err.println("COSE:LICENSE: Problem with SQL query: " + e);
+      IvyLog.logE("COSE","Problem with SQL query for license: " + e);
       sql_conn = null;
     }
    

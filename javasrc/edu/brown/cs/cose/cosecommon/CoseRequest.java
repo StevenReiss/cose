@@ -51,6 +51,7 @@ CoseSearchLanguage getLanguage();
 Set<CoseSearchEngine> getEngines();
 Set<String> getSpecificSources();
 CoseSignature getCoseSignature();
+List<String> getKeyTerms();
 
 boolean useAndroid();  
 

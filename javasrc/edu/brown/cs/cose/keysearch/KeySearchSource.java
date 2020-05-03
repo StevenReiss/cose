@@ -106,6 +106,26 @@ public String getLicenseUid()                   { return license_uid; }
 
 @Override public CoseSource getBaseSource()     { return null; }
 
+@Override public boolean isSameRepository(CoseSource src)
+{
+   String full = getName();
+   String uri = src.getName();
+   if (full.equals(uri)) return true;
+   
+   int idx1 = full.indexOf(":");
+   int idx2 = full.lastIndexOf("/");
+   String pfx = full.substring(idx1+1,idx2);
+   int idx3 = pfx.indexOf("/blob/");
+   if (idx3 > 0) {
+      int idx4 = pfx.indexOf("/",idx3+7);
+      if (idx4 >= 0) pfx = pfx.substring(0,idx4+1);
+    }
+   if (uri.contains(pfx)) return true;
+   return false;
+}
+
+
+
 @Override public String toString() 
 {
    return getDisplayName() + "@" + getOffset() + ":" + getLength();

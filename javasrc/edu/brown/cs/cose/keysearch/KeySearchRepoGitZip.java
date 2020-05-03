@@ -62,6 +62,7 @@ import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.ivy.exec.IvyExec;
 import edu.brown.cs.ivy.file.IvyFile;
+import edu.brown.cs.ivy.file.IvyLog;
 
 
 
@@ -160,12 +161,11 @@ List<URI> getSearchPageResults(Element jsoup)
 	 File zipdir = getZipDirectory(zippfx);
 	 File dataf = new File(zipdir,"DATA.zip");
 	 long dlm = dataf.lastModified();
-	 String auth = getAuthorization();
 
 	 try {
 	    URL url = zipuri.toURL();
-	    System.err.println("Cose: Load Zip file " + zippfx + " from " + url);
-	    InputStream ins = url_cache.getCacheStream(url,auth,dlm);
+	    IvyLog.logI("COSE","Load Zip file " + zippfx + " from " + url);
+	    InputStream ins = url_cache.getCacheStream(url,this,dlm);
 	    if (ins != null) {
 	       storeZipData(fileuri,uri,zippfx,ins);
 	       ins.close();
@@ -202,9 +202,8 @@ List<URI> getSearchPageResults(Element jsoup)
       File zipdir = getZipDirectory(zippfx);
       File dataf = new File(zipdir,"DATA.zip");
       long dlm = dataf.lastModified();
-      String auth = getAuthorization();
       URL url = new URL(archurl);
-      InputStream ins = url_cache.getCacheStream(url,auth,dlm);
+      InputStream ins = url_cache.getCacheStream(url,this,dlm);
       if (ins != null) {
 	 URI repouri = new URI("/https://github.com/" + robj.getString("full_name"));
 	 storeZipData(fileuri,repouri,zippfx,ins);
@@ -218,17 +217,17 @@ List<URI> getSearchPageResults(Element jsoup)
       return ruri;
     }
    catch (URISyntaxException e) {
-      System.err.println("PROBLEM WITH URI: " + e);
+      IvyLog.logE("COSE","PROBLEM WITH URI",e);
     }
    catch (JSONException e) {
-      System.err.println("PROBLEM WITH JSON: " + e);
+      IvyLog.logE("COSE","PROBLEM WITH JSON",e);
       return null;
     }
    catch (MalformedURLException e) {
-      System.err.println("PROBLEM WITH URL: " + e);
+      IvyLog.logE("COSE","PROBLEM WITH URL",e);
     }
    catch (IOException e) {
-      System.err.println("PROBLEM READING ZIP: " + e);
+      IvyLog.logE("COSE","Problem reading zip file",e);
     }
    return null;
 }
@@ -265,8 +264,7 @@ List<URI> getSearchPageResults(Element jsoup)
       return ruri;
     }
    catch (URISyntaxException e) {
-      System.err.println("Problem with path URI: " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem with path URI",e);
     }
 
    return super.getURIForPath(src,path);
@@ -327,8 +325,7 @@ URI getURIFromSourceString(String source)
        }
     }
    catch (Exception e) {
-      System.err.println("Cose: Problem reading zip file " + zid + ": " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem reading zip file " + zid,e);
     }
 
    return rslt;
@@ -388,8 +385,7 @@ boolean getClassesInPackage(String pkg,String project,int page,List<URI> rslt)
        }
     }
    catch (Exception e) {
-      System.err.println("Cose: Problem reading zip file " + zid + ": " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem reading zip file " + zid,e);
     }
 
    return false;
@@ -447,8 +443,7 @@ KeySearchClassData getPackageClassResult(CoseSource base,String pkg,String cls,i
        }
     }
    catch (Exception e) {
-      System.err.println("Cose: Problem reading zip file " + zid  + ": " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem reading zip file " + zid,e);
     }
 
    return rslt;
@@ -478,11 +473,11 @@ KeySearchClassData getPackageClassResult(CoseSource base,String pkg,String cls,i
 /*										*/
 /********************************************************************************/
 
-protected ByteArrayOutputStream loadURIBinary(URI uri,String auth,boolean cache,
+protected ByteArrayOutputStream loadURIBinary(URI uri,boolean cache,
        boolean reread) throws CoseException
 {
    if (!uri.getAuthority().equals("GITZIP"))
-      return super.loadURIBinary(uri,auth,cache,reread);
+      return super.loadURIBinary(uri,cache,reread);
 
    String rep = uri.getPath();
    String file = uri.getFragment();
@@ -522,8 +517,7 @@ protected ByteArrayOutputStream loadURIBinary(URI uri,String auth,boolean cache,
        }
     }
    catch (IOException e) {
-      System.err.println("Cose: Problem reading zip file " + zid + ": " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem reading zip file " + zid,e);
     }
 
    return null;
@@ -564,8 +558,7 @@ private void storeZipData(URI base,URI repo,String id,InputStream ins)
       fixupZip(zipdir);
     }
    catch (IOException e) {
-      System.err.println("Cose: Problem writing zip cache: " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem writing zip cache",e);
     }
 }
 
@@ -594,8 +587,7 @@ private void storeZipData(URI base, URI repo,String id,byte [] cnts)
       fixupZip(zipdir);
     }
    catch (IOException e) {
-      System.err.println("Cose: Problem writing zip cache: " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Problem writing zip cache",e);
     }
 }
 
@@ -616,7 +608,7 @@ private void fixupZip(File dir) throws IOException
    int sts = ex.waitFor();
    if (sts == 0) return;
 
-   System.err.println("Cose: Problem fixing big zip file");
+   IvyLog.logI("COSE","Problem fixing big zip file");
 }
 
 

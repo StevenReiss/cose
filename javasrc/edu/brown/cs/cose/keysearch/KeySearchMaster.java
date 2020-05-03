@@ -73,7 +73,7 @@ import edu.brown.cs.cose.cosecommon.CoseResource;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.cose.result.ResultFactory;
 import edu.brown.cs.cose.scorer.ScorerAnalyzer;
-
+import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.ivy.xml.IvyXml;
 
 
@@ -93,6 +93,7 @@ private ThreadPool		thread_pool;
 private CoseRequest		cose_request;
 private CoseResultSet		result_set;
 private Map<CoseSource,Map<String,Set<String>>> package_items;
+private Set<String>             repo_pkg_done;
 private Set<CoseSource> 	used_sources;
 private ResultFactory           result_factory;
 private PrintWriter             score_data_file;
@@ -137,11 +138,14 @@ public KeySearchMaster(CoseRequest req)
 	 case GITHUB :
 	    next = new KeySearchRepoGithub(req);
 	    break;
-	 case CODEEX :
-	    next = new KeySearchRepoCodeExchange(req);
-	    break;
-	 case GITZIP :
+         case GITZIP :
 	    next = new KeySearchRepoGitZip(req);
+	    break;
+         case GITREPO :
+            next = new KeySearchRepoGitRepo(req);
+            break;
+         case CODEEX :
+	    next = new KeySearchRepoCodeExchange(req);
 	    break;
 	 case SEARCHCODE :
 	    next = new KeySearchRepoSearchCode(req);
@@ -154,6 +158,7 @@ public KeySearchMaster(CoseRequest req)
     }
    thread_pool = new ThreadPool(req.getNumberOfThreads());
    package_items = new HashMap<CoseSource,Map<String,Set<String>>>();
+   repo_pkg_done = new HashSet<>();
    used_sources = new HashSet<>();
    result_factory = new ResultFactory(req);
    
@@ -348,6 +353,20 @@ private class ResultBuilder implements Runnable {
       CoseResult pfrag = null;
       switch (cose_request.getCoseSearchType()) {
          case METHOD :
+         case ANDROIDUI :
+         case CLASS :
+            break;
+         case PACKAGE :
+            ScorerAnalyzer sa = ScorerAnalyzer.createAnalyzer(cose_request);
+            if (sa.isTestCase(txt)) 
+               return;
+            break;
+         case TESTCLASS :
+            break;
+       }
+      
+      switch (cose_request.getCoseSearchType()) {
+         case METHOD :
          case CLASS :
          case TESTCLASS :
             addSolutions(txt,src);
@@ -416,6 +435,11 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
    String pkg = findPackageName(code);
    if (pkg == null || pkg.equals("")) return;
+   
+   String pid = source.getProjectId();
+   String id = pid + "@" + pkg;
+   if (!repo_pkg_done.add(id)) 
+      return;
 
    addPackageSolution(code,source,source,pfrag);
 
@@ -423,20 +447,7 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
    // Get the package name
    // Ensure package is unique
-   synchronized (package_items) {
-      Map<String,Set<String>> sitms = package_items.get(source);
-      if (sitms == null) {
-	 sitms = new HashMap<String,Set<String>>();
-	 package_items.put(source,sitms);
-       }
-      Set<String> itms = sitms.get(pkg);
-      if (itms != null) {
-	 return;
-       }
-      itms = new HashSet<String>();
-      itms.add(source.getName());
-      sitms.put(pkg,itms);
-    }
+   // if (!checkPackageSolution(code,source,source)) return; 
 
    // now expand to include the rest of the package
    ScanPackageSearchResults spsr = new ScanPackageSearchResults(repo,pkg,source,pfrag,subwaits);
@@ -451,25 +462,39 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
 private void addPackageSolution(String code,CoseSource source,CoseSource lclsrc,CoseResult pfrag)
 {
-   String pkg = findPackageName(code);
-   synchronized (package_items) {
-      Map<String,Set<String>> sitms = package_items.get(source);
-      if (sitms == null) {
-	 sitms = new HashMap<String,Set<String>>();
-	 package_items.put(source,sitms);
-       }
-      Set<String> items = sitms.get(pkg);
-      if (items != null) {
-	 synchronized (items) {
-	    if (!items.add(lclsrc.getName())) return;
-	  }
-       }
-    }
-
+   if (!pfrag.getSource().isSameRepository(lclsrc)) return;
+   if (!checkPackageSolution(code,source,lclsrc)) return;
    CoseResult rslt = result_factory.createFileResult(source,code);
    if (rslt == null) return;
 
    pfrag.addInnerResult(rslt);
+}
+
+
+private boolean checkPackageSolution(String code,CoseSource source,CoseSource lclsrc)
+{
+   String pkg = findPackageName(code);
+   String cnm = findClassName(code);
+   if (cnm != null && cnm.length() == 0) cnm = null;
+  
+   synchronized (package_items) {
+      Map<String,Set<String>> sitms = package_items.get(source);
+      if (sitms == null) {
+	 sitms = new HashMap<>();
+	 package_items.put(source,sitms);
+       }
+      Set<String> items = sitms.get(pkg);
+      if (items == null) {
+         items = new HashSet<>();
+         sitms.put(pkg,items);
+       }
+      synchronized (items) {
+         if (!items.add(lclsrc.getName())) return false;
+         if (cnm != null && !items.add(cnm)) return false;
+       }
+    }
+   
+   return true;
 }
 
 
@@ -483,7 +508,7 @@ private void addPackageSolution(String code,CoseSource source,CoseSource lclsrc,
 
 private void addInitialAndroidSolutions(KeySearchRepo repo,CoseSource src,String code)
 {
-   System.err.println("MANIFEST START: " + src.getDisplayName());
+   IvyLog.logI("COSE","MANIFEST START: " + src.getDisplayName());
    findAndroidManifest(repo,src);
 }
 
@@ -491,7 +516,7 @@ private void addInitialAndroidSolutions(KeySearchRepo repo,CoseSource src,String
 private void addAndroidSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,String code)
 {
    if (source == null || source.getDisplayName() == null) {
-      System.err.println("BAD SOURCE " + source);
+      IvyLog.logE("COSE","BAD SOURCE " + source);
       return;
     }
 
@@ -500,7 +525,7 @@ private void addAndroidSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource 
       // could edit the manifest here
       code = cleanAndroidManifest(code);
       if (code == null) {
-	 System.err.println("NULL CODE");
+	 IvyLog.logE("COSE","NULL CODE for android manifest xml");
 	 return;
        }
       AndroidResource rsrc = new AndroidResource("AndroidManifest.xml",code.getBytes(CHAR_SET));
@@ -558,7 +583,7 @@ private void addManifestClasses(KeySearchRepo repo,CoseResult pfrag,CoseSource s
 
    org.w3c.dom.Element xml = IvyXml.convertStringToXml(code);
    if (!IvyXml.isElement(xml,"manifest")) {
-      System.err.println("NON_MANIFEST RETURNED: " + src.getDisplayName() + " :: " + code);
+      IvyLog.logI("COSE","NON_MANIFEST RETURNED: " + src.getDisplayName() + " :: " + code);
       return;
     }
    String pkg = IvyXml.getAttrString(xml,"package");
@@ -570,13 +595,13 @@ private void addManifestClasses(KeySearchRepo repo,CoseResult pfrag,CoseSource s
        }
       Set<String> items = sitms.get(pkg);
       if (items != null) {
-	 System.err.println("DUPLICATE MANIFEST " + src.getDisplayName() + " " + pkg);
+	 IvyLog.logI("COSE","DUPLICATE MANIFEST " + src.getDisplayName() + " " + pkg);
 	 return;
        }
       sitms.put(pkg,new HashSet<String>());
     }
 
-   System.err.println("WORK ON MANIFEST " + src.getDisplayName());
+   IvyLog.logI("COSE","WORK ON MANIFEST " + src.getDisplayName());
 
    for (org.w3c.dom.Element appxml : IvyXml.children(xml,"application")) {
       String icls = IvyXml.getAttrString(appxml,"android:name");
@@ -623,7 +648,7 @@ private void loadAndroidClass(KeySearchRepo repo,CoseResult pfrag,CoseSource src
 	 cls = cls.substring(idx1+1);
        }
     }
-   System.err.println("ADD CLASS " + pkg + " " + cls);
+   IvyLog.logI("COSE","ADD Android CLASS " + pkg + " " + cls);
    AndroidClassLoader acl = new AndroidClassLoader(repo,src,lpkg,cls,pfrag,subwaits);
    addSubtask(acl,subwaits);
 }
@@ -682,12 +707,12 @@ private class AndroidResourceLoader implements Runnable {
 	  }
 	 if (uris == null || uris.size() == 0) {
 	    if (!loadResourceData(nsrc,rslts))
-	       System.err.println("NO CONTENTS FOUND FOR " + load_uri);
+	       IvyLog.logI("COSE","NO CONTENTS FOUND FOR " + load_uri);
 	    return;
 	  }
 	 for (URI ux : uris) {
 	    AndroidResourceLoader arl = new AndroidResourceLoader(this,ux);
-	    System.err.println("ADD RESOURCE SUBTASK FOR " + ux);
+	    IvyLog.logI("COSE","ADD RESOURCE SUBTASK FOR " + ux);
 	    addSubtask(arl,sub_waits);
 	  }
        }
@@ -705,7 +730,7 @@ private class AndroidResourceLoader implements Runnable {
       if (idx2 > 0) path = path.substring(idx2+1);
       AndroidResource arsrc = new AndroidResource(path,cnts);
       package_result.addResource(arsrc);
-      System.err.println("RESOURCE: " + nsrc.getName() + " " + nsrc.getProjectId() + " " +
+      IvyLog.logI("COSE","RESOURCE: " + nsrc.getName() + " " + nsrc.getProjectId() + " " +
 	    nsrc.getDisplayName());
       if (path.contains("layout/") && path.endsWith(".xml")) {
 	 String xmlstr = new String(cnts);
@@ -785,12 +810,11 @@ private class AndroidClassLoader implements Runnable {
 	    package_result.addInnerResult(rslt);
 	  }
 	 catch (Throwable t) {
-	    System.err.println("PACKAGE PROBLEM: " + t);
-	    t.printStackTrace();
+	    IvyLog.logE("COSE","PACKAGE PROBLEM",t);
 	  }
        }
       else {
-	 System.err.println("Cose: ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
+	 IvyLog.logI("COSE","ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
 	 if (kcd != null) {
 	    ++page_number;
 	    addSubtask(this,sub_waits);
@@ -889,15 +913,15 @@ private class ScanPackageSearchResults implements Runnable {
       List<URI> uris = new ArrayList<URI>();
       boolean more = for_repo.getClassesInPackage(package_name,project_id,page_number,uris);
       if (uris == null || uris.size() == 0) return;
+      
       for (URI u : uris) {
-	 LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
-	 addSubtask(lrp,package_queue);
+         LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
+         addSubtask(lrp,package_queue);
        }
-
-      // if (for_repo.hasMoreResults(uri,rslts))
+   
       if (page_number < 10 && more) {
-	 ++page_number;
-	 addSubtask(this,package_queue);
+         ++page_number;
+         addSubtask(this,package_queue);
        }
     }
 
@@ -910,41 +934,67 @@ private class LoadPackageResult implements Runnable {
    private KeySearchRepo for_repo;
    private URI page_uri;
    private String package_name;
+   private String orig_package;
    private CoseResult package_result;
    private CoseSource package_source;
 
    LoadPackageResult(KeySearchRepo repo,URI uri,String pkg,CoseResult pkgfrag,
-	 CoseSource pkgsrc) {
+         CoseSource pkgsrc) {
       for_repo = repo;
       page_uri = uri;
       package_name = pkg;
       package_source = pkgsrc;
       package_result = pkgfrag;
+      orig_package = null;
+      String ptxt = pkgfrag.getEditText();
+      if (ptxt != null) orig_package = findPackageName(ptxt);
     }
 
    @Override public void run() {
       String code = for_repo.getSourcePage(page_uri);
       if (code == null) return;
+      
       CoseSource src = for_repo.createSource(page_uri,code,0);
       String pkg = findPackageName(code);
       if (!pkg.equals(package_name)) return;
+      if (orig_package != null && !pkg.equals(orig_package)) {
+         // handle code from other packages
+         if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_IFACE) {
+            String cls = findInterfaceName(code);
+            if (cls == null || cls.equals("")) return;
+            boolean fnd = package_result.getEditText().contains(cls);
+            if (!fnd) return;
+            // System.err.println("ADD IFACE " + cls + " " + fnd + " " + orig_package);
+            IvyLog.logD("COSE","ADD IFACE " + cls + " " + fnd + " " + orig_package);
+            // should make sure iface is actually used
+          }
+         else if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_USED) {
+            String cls = findTypeName(code);
+            if (cls == null || cls.equals("")) return;
+            boolean fnd = package_result.getEditText().contains(cls);
+            if (!fnd) return;
+            // System.err.println("ADD USED " + cls + " " + fnd + " " + orig_package);
+            IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + orig_package);
+          }
+       }
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
-	 String ext = findExtendsName(code);
-	 boolean isui = false;
-	 if (ext != null) {
-	    if (ext.equals("Result") || ext.equals("Fragment") || ext.equals("Activity")) {
-	       isui = true;
-	     }
-	  }
-	 if (!isui) return;
+         String ext = findExtendsName(code);
+         boolean isui = false;
+         if (ext != null) {
+            if (ext.equals("Result") || ext.equals("Fragment") || ext.equals("Activity")) {
+               isui = true;
+             }
+          }
+         if (!isui) return;
        }
       if (cose_request.getCoseSearchType() == CoseSearchType.ANDROIDUI) {
-	 String cls = findClassName(code);
-	 if (cls != null && cls.equals("R")) return;
-	 if (cls != null && cls.equals("BuildConfig")) return;
+         String cls = findClassName(code);
+         if (cls != null && cls.equals("R")) return;
+         if (cls != null && cls.equals("BuildConfig")) return;
        }
+      
       addPackageSolution(code,package_source,src,package_result);
-    }
+   }
 
 
 }	// end of inner class LoadPackageResult
@@ -976,43 +1026,47 @@ private class FinishPackageTask implements Runnable {
 
    @Override public void run() {
       if (!checkIfDone(package_queue)) {
-	 // try again later
-	 addTask(this);
-	 return;
+         // try again later
+         addTask(this);
+         return;
        }
-
+   
       // here is were we extend the solution to include other packages
       Set<String> pkgs = null;
-
+   
       switch (cose_request.getCoseScopeType()) {
-	 case SYSTEM :
-	    pkgs = package_result.getRelatedProjects();
-	    break;
-	 case PACKAGE :
-	    pkgs = package_result.getUsedProjects();
-	    break;
-	 default :
-	    break;
+         case SYSTEM :
+         case PACKAGE_IFACE :
+         case PACKAGE_USED :
+            pkgs = package_result.getRelatedProjects();
+            break;
+         case PACKAGE :
+            pkgs = package_result.getUsedProjects();
+            break;
+         default :
+            break;
        }
-
+   
       if (pkgs != null) {
-	 if (cose_request.getCoseSearchType() != CoseSearchType.ANDROIDUI && retry_count > 0) {
-	    for (Iterator<String> it = pkgs.iterator(); it.hasNext(); ) {
-	       String p = it.next();
-	       if (!package_result.addPackage(p)) it.remove();
-	     }
-	  }
-	 if (pkgs.size() > 0) {
-	    for (String pkg : pkgs) {
-	       ScanPackageSearchResults spsr = new ScanPackageSearchResults(for_repo,pkg,
-		     package_source,package_result,package_queue);
-	       addSubtask(spsr,package_queue);
-	     }
-	    ++retry_count;
-	    addTask(this);
-	    return;
-	  }
+         if (cose_request.getCoseSearchType() != CoseSearchType.ANDROIDUI && retry_count > 0) {
+            for (Iterator<String> it = pkgs.iterator(); it.hasNext(); ) {
+               String p = it.next();
+               if (!package_result.addPackage(p)) it.remove();
+             }
+          }
+         if (pkgs.size() > 0) {
+            for (String pkg : pkgs) {
+               ScanPackageSearchResults spsr = new ScanPackageSearchResults(for_repo,pkg,
+                     package_source,package_result,package_queue);
+               addSubtask(spsr,package_queue);
+             }
+            ++retry_count;
+            addTask(this);
+            return;
+          }
        }
+      
+      result_set.addResult(package_result);
     }
 
 }	// end of inner class FinishPackageTask
@@ -1095,6 +1149,37 @@ static String findClassName(String text)
 }
 
 
+static String findTypeName(String text)
+{
+   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)\\s+((extends\\s)|(implements\\s)|\\{)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(text);
+   if (!mat.find()) return null;
+   String cls = mat.group(4);
+   return cls;
+}
+
+
+
+static String findInterfaceName(String text)
+{
+   String pats = "\\s*((public)\\s+)*interface\\s+(\\w+)\\s+((extends\\s)|\\{)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(text);
+   if (!mat.find()) return null;
+   String cls = mat.group(3);
+   
+   String patcs = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)\\s+((extends\\s)|(implements\\s)|\\{)";
+   Pattern patc = Pattern.compile(patcs,Pattern.MULTILINE);
+   Matcher matc = patc.matcher(text);
+   if (matc.find()) {
+      if (matc.start() < mat.start()) return null;
+    }
+   
+   return cls;
+}
+
+
 
 static String findExtendsName(String text)
 {
@@ -1157,27 +1242,28 @@ private class ThreadPool extends ThreadPoolExecutor implements ThreadFactory {
       return th;
     }
 
-   @Override public void execute(Runnable r) {
+   @Override public synchronized void execute(Runnable r) {
+      // System.err.println("BEGIN " + r);
       ++exec_count;
       super.execute(r);
     }
 
    @Override protected synchronized void afterExecute(Runnable r,Throwable t) {
-      super.afterExecute(r,t);
+      // System.err.println("FINISH " + r + " " + t);
       --exec_count;
+      super.afterExecute(r,t);
       if (exec_count <= 0) notifyAll();
       if (t != null) {
-         System.err.println("COSE: Problem during search: " + t);
-         t.printStackTrace();
+         IvyLog.logE("COSE","Problem during search",t);
        }
     }
 
    synchronized void waitForAll() {
       while (getQueue().size() > 0 || exec_count > 0) {
-	 try {
-	    wait(2000);
-	  }
-	 catch (InterruptedException e) { }
+         try {
+            wait(2000);
+          }
+         catch (InterruptedException e) { }
        }
     }
 

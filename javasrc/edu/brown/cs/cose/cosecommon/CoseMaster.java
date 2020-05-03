@@ -14,6 +14,8 @@ package edu.brown.cs.cose.cosecommon;
 
 import java.lang.reflect.Constructor;
 
+import edu.brown.cs.ivy.file.IvyLog;
+
 public interface CoseMaster extends CoseConstants
 {
 
@@ -31,8 +33,7 @@ static public CoseMaster createMaster(CoseRequest req)
       return cr;
     }
    catch (Exception e) {
-      System.err.println("Can't create COSE Master: " + e);
-      e.printStackTrace();
+      IvyLog.logE("COSE","Can't create COSE Master",e);
       return null;
     }
 }

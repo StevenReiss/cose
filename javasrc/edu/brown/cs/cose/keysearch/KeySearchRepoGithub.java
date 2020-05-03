@@ -39,6 +39,7 @@ import edu.brown.cs.cose.cosecommon.CoseException;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.ivy.file.IvyFile;
+import edu.brown.cs.ivy.file.IvyLog;
 
 import java.io.*;
 import java.net.*;
@@ -61,24 +62,23 @@ class KeySearchRepoGithub extends KeySearchRepo
 
 protected final static String	GITHUB_SCHEME = "https";
 protected final static String	GITHUB_AUTHORITY = "github.com";
-private final static String	GITHUB_PATH = "/search";
 protected final static String	GITHUB_FRAGMENT = null;
-private final static String	GITHUB_QUERY_TAIL = "&ref=advsearch&type=Code";
 private final static String	GITHUB_FILE_AUTHORITY = "raw.github.com";
 
 private final static String	SOURCE_PREFIX = "GITHUB:";
 
-private final static int	RESULTS_PER_PAGE = 10;
+private final static int	RESULTS_PER_PAGE = 100;
 private final static int	SIMULTANEOUS_SEARCH = 1;
 
-private static OAuthData	oauth_token = null;
-private static String		github_auth;
+protected static OAuthData	oauth_token = null;
+protected static String	github_auth;
+
 
 private final static String	COSE_CLIENT_ID = "92367cf10da5b70932fa";
 private final static String	COSE_CLIENT_SECRET = "53e04859dec97346e3cd9f886b4e847c4d7cc2dc";
 private final static String	COSE_FINGERPRINT;
 
-private static boolean		use_github_api = true;
+
 static {
    COSE_FINGERPRINT = "Cose_" + Math.round(Math.random()*1000000000);
 }
@@ -94,7 +94,6 @@ static {
 KeySearchRepoGithub(CoseRequest sr)
 {
    super(sr,SIMULTANEOUS_SEARCH);
-   getOAuthToken();
 }
 
 
@@ -127,24 +126,15 @@ protected boolean isRelevantSource(String src)
 
 @Override int getResultsPerPage()
 {
-   if (oauth_token != null && use_github_api) return 100;
-
    return RESULTS_PER_PAGE;
 }
 
 
 
-@Override String getAuthorization()
+@Override public String getAuthorization()
 {
-   if (oauth_token != null && use_github_api) {
-      return "token " + oauth_token.getToken();
-    }
-
-   if (github_auth != null) {
-      return github_auth;
-    }
-
-   return null;
+   getOAuthToken();
+   return "token " + oauth_token.getToken();
 }
 
 
@@ -167,6 +157,7 @@ protected boolean isRelevantSource(String src)
    q += "q=";
    int i = 0;
    for (String s : keys) {
+      s = normalizeKeyword(s);
       if (i++ > 0) q += " ";
       if (s.contains(" ")) q += "\"" + s + "\"";
       else q += s;
@@ -174,20 +165,10 @@ protected boolean isRelevantSource(String src)
    if (projectid != null) q += " repo:" + projectid;
 
    try {
-      URI uri = null;
-      if (oauth_token != null && use_github_api) {
-	 if (lang != null) q += " language:" + langstr;
-	 if (page > 0) q+= "&page=" + (page+1);
-	 q += "&per_page=100";
-	 // q += "&access_token=" + oauth_token.getToken();
-	 uri = new URI(GITHUB_SCHEME,"api.github.com","/search/code",q,null);
-       }
-      else {
-	 if (page > 0) q += "&p=" + (page+1);
-	 if (lang != null) q += "&l=" + langstr;
-	 q += GITHUB_QUERY_TAIL;
-	 uri = new URI(GITHUB_SCHEME,GITHUB_AUTHORITY,GITHUB_PATH,q,null);
-       }
+      if (lang != null) q += " language:" + langstr;
+      if (page > 0) q+= "&page=" + (page+1);
+      q += "&per_page=" + RESULTS_PER_PAGE;
+      URI uri = new URI(GITHUB_SCHEME,"api.github.com","/search/code",q,null);
       return uri;
     }
    catch (URISyntaxException e) { }
@@ -212,8 +193,6 @@ protected boolean isRelevantSource(String src)
 
 List<URI> getSearchPageResults(URI uri,String cnts)
 {
-   if (oauth_token == null || !use_github_api) return super.getSearchPageResults(uri,cnts);
-
    List<URI> rslt = new ArrayList<URI>();
    try {
       JSONArray jarr = null;
@@ -227,13 +206,12 @@ List<URI> getSearchPageResults(URI uri,String cnts)
       else jarr = new JSONArray();
       for (int i = 0; i < jarr.length(); ++i) {
 	 JSONObject jobj = jarr.getJSONObject(i);
-	 // System.err.println("RESULT: " + jobj);
 	 URI uri2 = convertSearchResults(jobj);
 	 if (uri2 != null) rslt.add(uri2);
        }
     }
    catch (JSONException e) {
-      System.err.println("Cose: Problem parsing github json return: " + e);
+      IvyLog.logE("COSE","Problem parsing github json return",e);
     }
 
    return rslt;
@@ -247,10 +225,10 @@ protected URI convertSearchResults(JSONObject jobj)
       return uri2;
     }
    catch (URISyntaxException e) {
-      System.err.println("BAD URI: " + e);
+      IvyLog.logE("COSE","BAD URI: " + e);
     }
    catch (JSONException e) {
-      System.err.println("BAD JSON: " + e);
+      IvyLog.logE("COSE","BAD JSON: " + e);
     }
 
    return null;
@@ -369,6 +347,7 @@ List<URI> getSearchPageResults(Element jsoup)
 @Override protected boolean shouldRetry(CoseException e)
 {
    if (e.getMessage().contains(": 429")) return true;
+   if (e.getMessage().contains(": 403")) return true;
    return false;
 }
 
@@ -380,10 +359,10 @@ List<URI> getSearchPageResults(Element jsoup)
 /*										*/
 /********************************************************************************/
 
-private static class GithubSource extends KeySearchSource implements CoseSource {
+protected static class GithubSource extends KeySearchSource implements CoseSource {
 
-   private String base_link;
-   private String base_path;
+   protected String base_link;
+   protected String base_path;
 
    GithubSource(String base,String code,int idx) {
       super(code,idx);
@@ -444,9 +423,13 @@ private synchronized static void getOAuthToken()
    if (oauth_token != null) return;
 
    if (github_auth == null) {
-      String userpass = loadGithubUserInfo();
-      if (userpass == null) return;
-      github_auth = "Basic " + userpass;
+      String token = loadGithubUserToken();
+      if (token != null) github_auth = "token " + token;
+      else {
+         String userpass = loadGithubUserInfo();
+         if (userpass == null) return;
+         github_auth = "Basic " + userpass;
+       }
     }
 
    Object o1 = doGithubAuthenticate(null,"GET",null);
@@ -454,7 +437,7 @@ private synchronized static void getOAuthToken()
    try {
       for (int i = 0; i < j1.length(); ++i) {
 	 JSONObject key = j1.getJSONObject(i);
-	 System.err.println("RESULT [" + i + "] IS " + key);
+	 IvyLog.logI("COSE","RESULT [" + i + "] IS " + key);
 	 OAuthData od = new OAuthData(key);
 	 if (od.isValid()) {
 	    oauth_token = od;
@@ -483,6 +466,27 @@ private synchronized static void getOAuthToken()
       Runtime.getRuntime().addShutdownHook(new OAuthRemover(od));
       return;
     }
+}
+
+
+private static String loadGithubUserToken()
+{
+   try {
+      File path = IvyFile.expandFile("$(HOME)/.githubtoken");
+      BufferedReader fr = new BufferedReader(new FileReader(path));
+      for ( ; ; ) {
+	 String ln = fr.readLine();
+	 if (ln == null) break;
+	 ln = ln.trim();
+	 if (ln.length() == 0) continue;
+	 if (ln.startsWith("#") || ln.startsWith("%")) continue;
+	 fr.close();
+	 return ln;
+       }
+      fr.close();
+    }
+   catch (IOException e) { }
+   return null;
 }
 
 
@@ -554,14 +558,14 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
       else if (cnts.startsWith("{")) return new JSONObject(cnts);
       else if (cnts.equals("")) ;
       else {
-	 System.err.println("Cose: bad json contents: " + cnts);
+	 IvyLog.logE("COSE","Bad json contents: " + cnts);
        }
     }
    catch (IOException e) {
-      System.err.println("I/O Error accessing github: " + e);
+      IvyLog.logE("COSE","I/O Error accessing github: " + e);
     }
    catch (JSONException e) {
-      System.err.println("JSON Error accessing github: " + e);
+      IvyLog.logE("COSE","JSON Error accessing github: " + e);
     }
 
    return null;
@@ -621,7 +625,7 @@ private static class OAuthData {
 	    fw.close();
 	  }
 	 catch (IOException e) {
-	    System.err.println("GITHUB: PROBLEM SAVING TOKEN: " + e);
+	    IvyLog.logE("COSE","GITHUB: PROBLEM SAVING TOKEN: " + e);
 	  }
        }
     }
@@ -644,7 +648,7 @@ private static class OAuthData {
 	    fr.close();
 	  }
 	 catch (IOException e) {
-	    System.err.println("GITHUB: Problem reading token: " + e);
+	    IvyLog.logE("COSE","Problem reading github token: " + e);
 	  }
        }
     }
@@ -664,8 +668,10 @@ private static class OAuthRemover extends Thread
       String auth = COSE_CLIENT_ID + ":" +COSE_CLIENT_SECRET;
       auth = Base64.getEncoder().encodeToString(auth.getBytes());
       github_auth = "Basic " + auth;
-      doGithubAuthenticate("/applications/" + COSE_CLIENT_ID + "/tokens/" + auth_data.getToken(),
-		   "DELETE",null);
+      Map<String,Object> delinp = new HashMap<>();
+      delinp.put("access_token",auth_data.getToken());
+      doGithubAuthenticate("/applications/" + COSE_CLIENT_ID + "/token",
+        	   "DELETE",delinp);
     }
 
 }	// end of inner class OAuthRemover

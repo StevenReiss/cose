@@ -49,6 +49,7 @@ int getOffset();
 int getLength();
 String getLicenseUid();
 CoseSource getBaseSource();
+boolean isSameRepository(CoseSource src);
 
 }       // end of interface CoseSource
 

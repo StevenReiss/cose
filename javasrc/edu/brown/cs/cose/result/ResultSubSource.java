@@ -113,6 +113,10 @@ ResultSubSource(CoseSource src,int off,int len)
    return base_source.getLicenseUid();
 }
 
+@Override public boolean isSameRepository(CoseSource src)
+{
+   return base_source.isSameRepository(src);
+}
 
 
 

@@ -105,6 +105,12 @@ class KeySearchClassData {
 
 
 
+interface KeySearchAuthorizer {
+
+   String getAuthorization();
+   
+}       // end of inner interface KeySearchAuthorizer
+
 
 }	// end of interface KeySearchConstants
 

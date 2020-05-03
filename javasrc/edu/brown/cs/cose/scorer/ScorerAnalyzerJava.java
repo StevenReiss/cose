@@ -47,9 +47,12 @@ import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.ArrayType;
+import org.eclipse.jdt.core.dom.BodyDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.DoStatement;
 import org.eclipse.jdt.core.dom.EnhancedForStatement;
+import org.eclipse.jdt.core.dom.EnumDeclaration;
+import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.ForStatement;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
@@ -57,6 +60,7 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.NameQualifiedType;
+import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.QualifiedType;
 import org.eclipse.jdt.core.dom.SimpleType;
@@ -72,6 +76,7 @@ import edu.brown.cs.cose.cosecommon.CoseScores;
 import edu.brown.cs.cose.cosecommon.CoseSignature;
 import edu.brown.cs.cose.cosecommon.CoseRequest.CoseKeywordSet;
 import edu.brown.cs.ivy.file.IvyStringDiff;
+import edu.brown.cs.ivy.jcomp.JcompAst;
 
 class ScorerAnalyzerJava extends ScorerAnalyzer
 {
@@ -84,6 +89,7 @@ class ScorerAnalyzerJava extends ScorerAnalyzer
 /********************************************************************************/
 
 protected CoseResultType  result_type;
+private ASTNode           for_node;
 
 private static List<String>      standard_imports;
 
@@ -123,25 +129,34 @@ static {
 /*                                                                              */
 /********************************************************************************/
 
-ScorerAnalyzerJava(CoseRequest cr)
+ScorerAnalyzerJava(CoseRequest cr,ASTNode n)
 {
    super(cr);
    result_type = null;
+   for_node = n;
 }
 
 
 
 /********************************************************************************/
 /*                                                                              */
-/*      Main analysis entry                                                     */
+/*      Main analysis entries                                                   */
 /*                                                                              */
 /********************************************************************************/
 
 @Override public synchronized CoseScores analyzeProperties(CoseResult cr)
 {
    result_type = cr.getResultType();
-   ASTNode obj = (ASTNode) cr.getStructure();
-   String text = cr.getText();
+   ASTNode obj;
+   String text;
+   if (for_node == null) {
+      obj = (ASTNode) cr.getStructure();
+      text = cr.getText();
+    }
+   else {
+      obj = for_node;
+      text = for_node.toString();
+    }
   
    value_map.put("RANK",cr.getSource().getScore()); 
    
@@ -152,8 +167,25 @@ ScorerAnalyzerJava(CoseRequest cr)
    handleKeywordMatch(text,obj);
    handleTargetMatch(obj);
    
+   double x = value_map.getDouble("TERMMATCHES");
+   double y = value_map.getDouble("NODES");
+   if (y == 0) x = 0;
+   else x = x/y;
+   value_map.put("TERMDENSITY",x);
+   
    return value_map;
 }
+
+@Override public boolean isTestCase(String src)
+{
+   ASTNode obj = JcompAst.parseSourceFile(src);
+   checkTestCase(obj);
+   boolean rslt = value_map.getBoolean("TESTCASE");
+   return rslt;
+}
+
+
+
 
 
 /********************************************************************************/
@@ -177,7 +209,7 @@ private void checkTestCase(ASTNode obj)
          fg = isTestClass((TypeDeclaration) obj);
          break;
       case ASTNode.COMPILATION_UNIT :
-         if (result_type == CoseResultType.PACKAGE) fg = null;
+         if (result_type == CoseResultType.PACKAGE) fg = isTestPackage((CompilationUnit) obj);
          else fg = isTestFile((CompilationUnit) obj);
          break;
       case ASTNode.METHOD_DECLARATION :
@@ -238,6 +270,30 @@ private boolean isTestFile(CompilationUnit cu)
    return false;
 }
 
+private boolean isTestPackage(CompilationUnit cu)
+{
+   PackageDeclaration pd = cu.getPackage();
+   if (pd != null) {
+      String pnm = pd.getName().getFullyQualifiedName();
+      if (pnm.contains("test")) return true;
+    }
+   
+   int ntest = 0;
+   int nclass = 0;
+   for (Object o : cu.types()) {
+      if (o instanceof TypeDeclaration) {
+         TypeDeclaration td = (TypeDeclaration) o;
+         if (td.isInterface()) continue;
+         if (isTestClass(td)) ++ntest;
+         ++nclass;
+       }
+    }
+   
+   if (ntest > nclass/2) return true;
+   
+   return false;
+}
+
 
 
 /********************************************************************************/
@@ -253,7 +309,12 @@ private void checkCodeComplexity(ASTNode n,String text)
    value_map.put("NODES",cm.getNodeCount());
    value_map.put("LINES",getCodeLines(text));
    value_map.put("TRIVIAL",cm.getNodeCount() <= 10);
-   if (n instanceof MethodDeclaration) checkLoopComplexity((MethodDeclaration) n);
+   if (n instanceof MethodDeclaration) 
+      checkLoopComplexity((MethodDeclaration) n);
+   else if (n instanceof AbstractTypeDeclaration) 
+      checkClassComplexity((AbstractTypeDeclaration) n);
+   else if (n instanceof CompilationUnit) 
+      checkPackageComplexity((CompilationUnit) n);
 }
 
 
@@ -326,6 +387,114 @@ private void checkLoopComplexity(MethodDeclaration md)
     value_map.put("NO_LOOPS",lv.getLoopCount() == 0);
     value_map.put("NO_CALLS",lv.getCallCount() == 0);
 }
+
+
+
+private void checkClassComplexity(AbstractTypeDeclaration atd)
+{
+   int nmethod = 0;
+   int nfield = 0;
+   int ntype = 0;
+   int naccess = 0;
+   
+   for (Object o : atd.bodyDeclarations()) {
+      BodyDeclaration bd = (BodyDeclaration) o;
+      if (!Modifier.isPrivate(bd.getModifiers())) ++naccess;
+      switch (bd.getNodeType()) {
+         case ASTNode.FIELD_DECLARATION :
+            if (!Modifier.isFinal(bd.getModifiers()) &&
+                 !Modifier.isStatic(bd.getModifiers())) {
+               ++nfield;
+             }
+            break;
+         case ASTNode.ENUM_DECLARATION :
+         case ASTNode.TYPE_DECLARATION :
+            ++ntype;
+            break;
+         case ASTNode.METHOD_DECLARATION :
+            ++nmethod;
+            break;
+         default :
+            break;
+       }
+    }
+   
+   value_map.put("METHODS",nmethod);
+   value_map.put("FIELDS",nfield);
+   value_map.put("INNER",ntype);
+   value_map.put("ACCESSIBLE",naccess);
+}
+
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Package complexity results                                              */
+/*                                                                              */
+/********************************************************************************/
+
+private void checkPackageComplexity(CompilationUnit cu)
+{
+   PackageStats ps = new PackageStats();
+   cu.accept(ps);
+   ps.saveStatistics();
+}
+
+
+private class PackageStats extends ASTVisitor {
+
+   private int num_types;
+   private int num_inner;
+   private int num_iface;
+   private int num_method;
+   private int num_field;
+   private int nest_level;
+   
+   PackageStats() {
+      num_types = 0;
+      num_inner = 0;
+      num_iface = 0;
+      num_method = 0;
+      num_field = 0;
+      nest_level = 0;
+    }
+   
+   void saveStatistics() {
+      value_map.put("METHODS",num_method);
+      value_map.put("FIELDS",num_field);
+      value_map.put("INNER",num_inner);
+      value_map.put("INTERFACES",num_iface);
+      value_map.put("TYPES",num_types);
+    }
+   
+   @Override public boolean visit(TypeDeclaration td) {
+      ++num_types;
+      if (nest_level > 0) ++num_inner;
+      if (td.isInterface()) ++num_iface;
+      ++nest_level;
+      return true;
+    }
+   
+   @Override public void endVisit(TypeDeclaration td) {
+      --nest_level;
+    }
+   
+   @Override public boolean visit(EnumDeclaration ed) {
+      ++num_types;
+      return false;
+    }
+   
+   @Override public boolean visit(MethodDeclaration md) {
+      ++num_method;
+      return false;
+    }
+   
+   @Override public boolean visit(FieldDeclaration fd) {
+      num_field += fd.fragments().size();
+      return false;
+    }
+   
+}       // end of inner class PackageStats
 
 
 
@@ -495,10 +664,18 @@ private void handlePropertyMeasures(ASTNode obj)
 
 private void handleKeywordMatch(String txt,ASTNode obj)
 {
-   int matches = 0;
-   int nkey = 0;
-   int keyused = 0;
-   int ntitle = 0;
+   int maxmatch = 10000;
+   switch (result_type) {
+      case FILE :
+      case CLASS :
+         maxmatch = 100;
+         break;
+      case METHOD :
+         maxmatch = 10;
+         break;
+      case PACKAGE :
+         maxmatch = 5000;
+    }
    
    String ttl = "";
    switch (obj.getNodeType()) {
@@ -520,31 +697,70 @@ private void handleKeywordMatch(String txt,ASTNode obj)
       default :
          break;
     }
+   if (ttl != null) ttl = ttl.toLowerCase();
+   
+   txt = txt.toLowerCase();
+   
+   int matches = 0;
+   int nkey = 0;
+   int keyused = 0;
+   int ntitle = 0;
    
    for (CoseKeywordSet cks : getKeywordSets()) {
       for (String s : cks.getWords()) {
-         int idx0 = 0;
-         boolean used = false;
-         while (idx0 >= 0) {
-            int idx = txt.indexOf(s,idx0);
-            if (idx < 0) break;
-            ++matches;
-            used = true;
-            idx0 = idx + s.length();
-          }
-         if (ttl.contains(s)) ++ntitle;
+         int mat = countUses(txt,s);
+         matches += mat;
+         int kmat = countUses(ttl,s);
+         ntitle += kmat;
          ++nkey;
-         if (used) ++keyused;
+         if (mat > 0) ++keyused;
        }
     }
-   
-   if (matches > 10) matches = 10;
+   if (matches > maxmatch) matches = maxmatch;
    value_map.put("MATCHES",matches);
    value_map.put("TITLEMATCH",ntitle);
-   
    double v = keyused;
    v /= nkey;
    value_map.put("KEYMATCH",v);
+   
+   int nterm = 0;
+   int ttlterm = 0;
+   int keyterm = 0;      
+   int termused = 0;
+   for (String s : getKeyTerms()) {
+      int mat = countUses(txt,s);
+      keyterm += mat;
+      int kmat = countUses(ttl,s);
+      ttlterm += kmat;
+      ++nterm;
+      if (mat > 0) ++termused;
+    }
+   if (keyterm > maxmatch) keyterm = maxmatch;
+   value_map.put("TERMMATCHES",keyterm);
+   v = termused;
+   v /= nterm;
+   value_map.put("TERMMATCH",v);
+   value_map.put("TERMTITLEMATCH",ttlterm);
+}
+
+
+
+private int countUses(String txt,String key)
+{
+   if (txt == null) return 0;
+   
+   int matches = 0;
+   key = key.toLowerCase();
+   
+   int idx0 = 0;
+   while (idx0 >= 0) {
+      int idx = txt.indexOf(key,idx0);
+      if (idx < 0) break;
+      ++matches;
+      idx0 = idx + key.length();
+    }
+   
+   return matches;
 }
 
 

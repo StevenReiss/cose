@@ -117,6 +117,15 @@ protected void setSource(CoseSource src)
 }
 
 
+
+@Override public CoseScores getScores(CoseRequest req,Object struct)
+{
+   ScorerAnalyzer sanal = ScorerAnalyzer.createAnalyzer(req,struct);
+   CoseScores scores = sanal.analyzeProperties(this);
+   return scores;
+}
+
+
 @Override public boolean addPackage(String pkg)                 { return false; }
 @Override public Collection<String> getPackages()               { return null; }
 @Override public String getBasePackage()                        { return null; }

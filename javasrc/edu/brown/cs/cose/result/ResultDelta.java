@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
+import edu.brown.cs.ivy.file.IvyLog;
 
 abstract class ResultDelta
 {
@@ -225,7 +226,7 @@ private List<String> applyDiff(List<String> orig)
    for (DiffStruct ds = diff_list; ds != null; ds = ds.getNext()) {
       while(ds.getIndex() > count) {
          if (orig.size() <= count) {
-            System.err.println("PROBLEM WITH DIFFS");
+            IvyLog.logE("COSE","PROBLEM WITH DIFFS");
           }
 	 ret.add(orig.get(count));
 	 count++;

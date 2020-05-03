@@ -36,7 +36,7 @@
 package edu.brown.cs.cose.keysearch;
 
 import edu.brown.cs.ivy.file.IvyFile;
-
+import edu.brown.cs.ivy.file.IvyLog;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -66,7 +66,7 @@ public class KeySearchCache implements KeySearchConstants
 private File		base_directory;
 private boolean 	use_cache;
 
-
+private static KeySearchCache cur_cache = new KeySearchCache();
 
 
 
@@ -76,7 +76,14 @@ private boolean 	use_cache;
 /*										*/
 /********************************************************************************/
 
-public KeySearchCache()
+public static KeySearchCache getCache()
+{
+   return cur_cache;
+}
+
+
+
+private  KeySearchCache()
 {
    base_directory = new File(CACHE_DIRECTORY);
    use_cache = true;
@@ -108,7 +115,7 @@ public BufferedReader getReader(URL url,boolean cache,boolean reread)
 
 
 
-public BufferedReader getReader(URL url,String auth,boolean cache,boolean reread)
+public BufferedReader getReader(URL url,KeySearchAuthorizer auth,boolean cache,boolean reread)
 	throws IOException
 {
    if (!use_cache || !cache) {
@@ -135,7 +142,7 @@ public InputStream getInputStream(URL url,boolean cache,boolean reread)
 
 
 
-public InputStream getInputStream(URL url,String auth,boolean cache,boolean reread)
+public InputStream getInputStream(URL url,KeySearchAuthorizer auth,boolean cache,boolean reread)
 	throws IOException
 {
    if (!use_cache || !cache) {
@@ -152,7 +159,7 @@ public InputStream getInputStream(URL url,String auth,boolean cache,boolean rere
 }
 
 
-public InputStream getCacheStream(URL url,String auth,long dlm) throws IOException
+public InputStream getCacheStream(URL url,KeySearchAuthorizer auth,long dlm) throws IOException
 {
    File dir = getDirectory(url,auth,false);
    if (dir != null) {
@@ -197,9 +204,9 @@ public void markForced(URL url) throws IOException
       fw.close();
     }
    catch (IOException e) {
-      System.err.println("S6: Problem with mark forced: " + e);
+      IvyLog.logE("COSE","Problem with mark forced: " + e);
     }
-   System.err.println("S6: Mark Forced " + dir + " FOR " + url);
+   IvyLog.logI("COSE","Mark Forced " + dir + " FOR " + url);
 }
 
 
@@ -212,7 +219,7 @@ public void markForced(URL url) throws IOException
 /*										*/
 /********************************************************************************/
 
-private BufferedReader getURLReader(URL url,String auth) throws IOException
+private BufferedReader getURLReader(URL url,KeySearchAuthorizer auth) throws IOException
 {
    InputStream ins = getURLStream(url,auth);
    return new BufferedReader(new InputStreamReader(ins,"UTF-8"));
@@ -220,13 +227,14 @@ private BufferedReader getURLReader(URL url,String auth) throws IOException
 
 
 
-private InputStream getURLStream(URL url,String auth) throws IOException
+private InputStream getURLStream(URL url,KeySearchAuthorizer auth) throws IOException
 {
    URLConnection uc = url.openConnection();
    uc.setReadTimeout(60000);
    uc.setRequestProperty("User-Agent","s6");
    if (auth != null) {
-      uc.setRequestProperty("Authorization",auth);
+      String auths = auth.getAuthorization();
+      if (auths != null) uc.setRequestProperty("Authorization",auths);
     }
    // uc.setAllowUserInteraction(false);
    // uc.setDoOutput(false);
@@ -242,7 +250,7 @@ private InputStream getURLStream(URL url,String auth) throws IOException
 /*										*/
 /********************************************************************************/
 
-private File getDirectory(URL u,String auth,boolean reread) throws IOException
+private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws IOException
 {
    if (u == null) return null;
 
@@ -280,7 +288,6 @@ private File getDirectory(URL u,String auth,boolean reread) throws IOException
       File dir = new File(dtop,sb.toString());
       File urlf = new File(dir,CACHE_URL_FILE);
       File dataf = new File(dir,CACHE_DATA_FILE);
-      // System.err.println("TRY " + i + " " + j0 + " " + j1 + " " + dir + " " + dir.exists());
       boolean fg = dir.mkdirs();
       if (!fg && !dir.exists()) return null;
       if (!fg && dir.exists() && dir.listFiles().length == 0
@@ -316,18 +323,18 @@ private File getDirectory(URL u,String auth,boolean reread) throws IOException
 	    return dir;
 	  }
 	 catch (IOException e) {
-	    System.err.println("S6: Failed to create URL cache file: " + e);
+	    IvyLog.logE("COSE","Failed to create URL cache file: " + e);
 	    return null;
 	  }
        }
       else { // directory already exists
 	 boolean urlfg = checkUrlFile(urlf, u);
 	 if (urlfg) {
-	    System.err.println("S6: Use CACHE: " + dir);
+	    IvyLog.logI("COSE","Use CACHE: " + dir);
 	    return dir;
 	  }
 	 if (!urlf.exists()) {
-	    System.err.println("S6: Bad cache directory: " + dir);
+	    IvyLog.logE("COSE","Bad cache directory: " + dir);
 	    dir.delete();
 	    return null;
 	  }
@@ -351,13 +358,12 @@ private boolean checkUrlFile(File urlf,URL u)
       BufferedReader br = new BufferedReader(new FileReader(urlf));
       String ln = br.readLine();
       br.close();
-      // System.err.println("CHECK URL " + ln);
       if (ln == null) return false;
       ln = ln.trim();
       if (ln.equalsIgnoreCase(u.toExternalForm())) return true;
     }
    catch (IOException e) {
-      System.err.println("REBASE: Problem reading URL cache file: " + e);
+      IvyLog.logE("COSE","Problem reading URL cache file",e);
     }
    return false;
 }

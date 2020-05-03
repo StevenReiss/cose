@@ -48,6 +48,7 @@ import org.w3c.dom.Element;
 
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.ivy.xml.IvyXml;
 
 
@@ -117,7 +118,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
    int ct = 0;
    for (String s : keywords) {
       if (ct++ > 0) buf.append(" ");            // could be " AND "
-      buf.append(s);
+      buf.append(normalizeKeyword(s));
     }
    buf.append(")");
    if (projectid != null) {
@@ -133,7 +134,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
       return new URI(CODEEX_SCHEME,CODEEX_AUTHORITY,CODEEX_PATH,buf.toString(),CODEEX_FRAGMENT);
     }
    catch (URISyntaxException e) {
-      System.err.println("S6: Problem with codeexchange URI: " + e);
+      IvyLog.logE("COSE","Problem with codexchangeURI: " + e);
     }
 
    return null;
@@ -191,7 +192,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
 	 rslt.add(u);
        }
       catch (URISyntaxException e) {
-	 System.err.println("S6: Problem creating codeex file uri: " + e);
+         IvyLog.logE("COSE","Problem creating codeex file uri: " + e);
        }
     }
 
@@ -213,7 +214,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
       cnts = cnts.substring(3,idx);
     }
    if (cnts.trim().startsWith("Warning:")) {
-      System.err.println("S6: Problem getting page: " + uri + ": " + cnts.trim());
+      IvyLog.logE("COSE","Problem getting page: " + uri + ": " + cnts.trim());
       return null;
     }
 
@@ -225,7 +226,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
       return rslt;
     }
    catch (JSONException e) {
-      System.err.println("S6: Problem getting codeexchange source: " + e);
+      IvyLog.logE("COSE","Problem getting codeexchange source",e);
     }
 
    return null;

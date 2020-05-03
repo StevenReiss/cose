@@ -37,6 +37,8 @@ package edu.brown.cs.cose.scorer;
 
 import java.util.List;
 
+import org.eclipse.jdt.core.dom.ASTNode;
+
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseScores;
@@ -58,7 +60,22 @@ public static ScorerAnalyzer createAnalyzer(CoseRequest req)
 {
    switch (req.getLanguage()) {
       case JAVA :
-         return new ScorerAnalyzerJava(req);
+         return new ScorerAnalyzerJava(req,null);
+      case JAVASCRIPT :
+      case XML :
+         break;
+    }
+   
+   return null;
+}
+
+
+
+public static ScorerAnalyzer createAnalyzer(CoseRequest req,Object struct)
+{
+   switch (req.getLanguage()) {
+      case JAVA :
+         return new ScorerAnalyzerJava(req,(ASTNode) struct);
       case JAVASCRIPT :
       case XML :
          break;
@@ -115,6 +132,11 @@ protected List<CoseKeywordSet> getKeywordSets()
    return base_request.getCoseKeywordSets();
 }
 
+protected List<String> getKeyTerms()
+{
+   return base_request.getKeyTerms();
+}
+
 
 protected CoseSignature getSignature()
 {
@@ -131,6 +153,7 @@ protected CoseSignature getSignature()
 
 abstract public CoseScores analyzeProperties(CoseResult cr);
 
+abstract public boolean isTestCase(String src);
 
 }       // end of class ScorerAnalyzer
 

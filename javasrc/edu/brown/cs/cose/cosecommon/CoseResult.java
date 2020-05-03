@@ -71,6 +71,7 @@ CoseResult cloneResult(Object diffs,Object data);
 boolean isCloned();
 
 CoseScores getScores(CoseRequest req);
+CoseScores getScores(CoseRequest req,Object struct);
 
 }       // end of interface CoseResult
 
