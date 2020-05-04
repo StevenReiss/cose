@@ -675,6 +675,7 @@ private void handleKeywordMatch(String txt,ASTNode obj)
          break;
       case PACKAGE :
          maxmatch = 5000;
+         break;
     }
    
    String ttl = "";
@@ -694,6 +695,7 @@ private void handleKeywordMatch(String txt,ASTNode obj)
          if (cu.getPackage() != null) {
             ttl = cu.getPackage().getName().getFullyQualifiedName();
           }
+         break;
       default :
          break;
     }

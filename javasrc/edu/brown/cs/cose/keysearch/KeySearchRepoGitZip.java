@@ -547,14 +547,14 @@ private void storeZipData(URI base,URI repo,String id,InputStream ins)
       fw.write("REPO: " + repo.toString() + "\n");
       fw.write("ID: " + id + "\n");
       fw.close();
-      FileOutputStream ots = new FileOutputStream(dataf);
-      byte [] buf = new byte[8192];
-      for ( ; ; ) {
-	 int ln = ins.read(buf);
-	 if (ln <= 0) break;
-	 ots.write(buf,0,ln);
+      try (FileOutputStream ots = new FileOutputStream(dataf)) {
+         byte [] buf = new byte[8192];
+         for ( ; ; ) {
+            int ln = ins.read(buf);
+            if (ln <= 0) break;
+            ots.write(buf,0,ln);
+          }
        }
-      ots.close();
       fixupZip(zipdir);
     }
    catch (IOException e) {

@@ -473,17 +473,17 @@ private static String loadGithubUserToken()
 {
    try {
       File path = IvyFile.expandFile("$(HOME)/.githubtoken");
-      BufferedReader fr = new BufferedReader(new FileReader(path));
-      for ( ; ; ) {
-	 String ln = fr.readLine();
-	 if (ln == null) break;
-	 ln = ln.trim();
-	 if (ln.length() == 0) continue;
-	 if (ln.startsWith("#") || ln.startsWith("%")) continue;
-	 fr.close();
-	 return ln;
+      try (BufferedReader fr = new BufferedReader(new FileReader(path))) {
+         for ( ; ; ) {
+            String ln = fr.readLine();
+            if (ln == null) break;
+            ln = ln.trim();
+            if (ln.length() == 0) continue;
+            if (ln.startsWith("#") || ln.startsWith("%")) continue;
+            fr.close();
+            return ln;
+          }
        }
-      fr.close();
     }
    catch (IOException e) { }
    return null;
@@ -494,17 +494,17 @@ private static String loadGithubUserInfo()
 {
    try {
       File path = IvyFile.expandFile("$(HOME)/.github");
-      BufferedReader fr = new BufferedReader(new FileReader(path));
-      for ( ; ; ) {
-	 String ln = fr.readLine();
-	 if (ln == null) break;
-	 ln = ln.trim();
-	 if (ln.length() == 0) continue;
-	 if (ln.startsWith("#") || ln.startsWith("%")) continue;
-	 fr.close();
-	 return Base64.getEncoder().encodeToString(ln.getBytes());
+      try (BufferedReader fr = new BufferedReader(new FileReader(path))) {
+         for ( ; ; ) {
+            String ln = fr.readLine();
+            if (ln == null) break;
+            ln = ln.trim();
+            if (ln.length() == 0) continue;
+            if (ln.startsWith("#") || ln.startsWith("%")) continue;
+            fr.close();
+            return Base64.getEncoder().encodeToString(ln.getBytes());
+          }
        }
-      fr.close();
     }
    catch (IOException e) { }
    return null;
@@ -543,22 +543,23 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
        }
 
       InputStream ins = hc1.getInputStream();
-      BufferedReader r = new BufferedReader(new InputStreamReader(ins));
-      StringBuffer buf = new StringBuffer();
-      for ( ; ; ) {
-	 String ln = r.readLine();
-	 if (ln == null) break;
-	 buf.append(ln);
-	 buf.append("\n");
-       }
-      hc1.disconnect();
-
-      String cnts = buf.toString().trim();
-      if (cnts.startsWith("[")) return new JSONArray(cnts);
-      else if (cnts.startsWith("{")) return new JSONObject(cnts);
-      else if (cnts.equals("")) ;
-      else {
-	 IvyLog.logE("COSE","Bad json contents: " + cnts);
+      try (BufferedReader r = new BufferedReader(new InputStreamReader(ins))) {
+         StringBuffer buf = new StringBuffer();
+         for ( ; ; ) {
+            String ln = r.readLine();
+            if (ln == null) break;
+            buf.append(ln);
+            buf.append("\n");
+          }
+         hc1.disconnect();
+         
+         String cnts = buf.toString().trim();
+         if (cnts.startsWith("[")) return new JSONArray(cnts);
+         else if (cnts.startsWith("{")) return new JSONObject(cnts);
+         else if (cnts.equals("")) ;
+         else {
+            IvyLog.logE("COSE","Bad json contents: " + cnts);
+          }
        }
     }
    catch (IOException e) {
@@ -632,24 +633,22 @@ private static class OAuthData {
 
    private void loadToken() {
       if (token_id == null && hash_token != null) {
-	 try {
-	    BufferedReader fr = new BufferedReader(new FileReader(TOKEN_FILE));
-	    for ( ; ; ) {
-	       String ln = fr.readLine();
-	       if (ln == null) break;
-	       int idx = ln.indexOf(",");
-	       if (idx < 0) continue;
-	       String key = ln.substring(0,idx);
-	       if (key.equals(hash_token)) {
-		  token_id = ln.substring(idx+1);
-		  break;
-		}
-	     }
-	    fr.close();
-	  }
-	 catch (IOException e) {
-	    IvyLog.logE("COSE","Problem reading github token: " + e);
-	  }
+         try (BufferedReader fr = new BufferedReader(new FileReader(TOKEN_FILE))) {
+            for ( ; ; ) {
+               String ln = fr.readLine();
+               if (ln == null) break;
+               int idx = ln.indexOf(",");
+               if (idx < 0) continue;
+               String key = ln.substring(0,idx);
+               if (key.equals(hash_token)) {
+                  token_id = ln.substring(idx+1);
+                  break;
+                }
+             }
+          }
+         catch (IOException e) {
+            IvyLog.logE("COSE","Problem reading github token: " + e);
+          }
        }
     }
 

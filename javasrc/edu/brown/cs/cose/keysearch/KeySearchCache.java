@@ -306,8 +306,7 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
 	    dir.delete();
 	    throw e;
 	  }
-	 try {
-	    FileOutputStream dw = new FileOutputStream(dataf);
+	 try (FileOutputStream dw = new FileOutputStream(dataf)) {
 	    byte[] buf = new byte[8192];
 	    for (;;) {
 	       int ln = br.read(buf);
@@ -315,7 +314,6 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
 	       dw.write(buf, 0, ln);
 	     }
 	    br.close();
-	    dw.close();
 	    FileWriter fw = new FileWriter(urlf);
 	    fw.write(u.toExternalForm() + "\n");
 	    fw.close();

@@ -129,8 +129,7 @@ private void buildModel()
 
 private void getPropertySet()
 {
-   try {
-      BufferedReader br = new BufferedReader(new FileReader(property_file));
+   try (BufferedReader br = new BufferedReader(new FileReader(property_file))) {
       SourceData cursource = null;
       for ( ; ; ) {
          String line = br.readLine();
@@ -191,8 +190,7 @@ private void getPropertySet()
 
 private void scanLogFile(File f) 
 {
-   try {
-      BufferedReader br = new BufferedReader(new FileReader(f));
+   try (BufferedReader br = new BufferedReader(new FileReader(f))) {
       for ( ; ; ) {
          String line = br.readLine();
          if (line == null) break;
@@ -211,7 +209,6 @@ private void scanLogFile(File f)
              }
           }
        }
-      br.close();
     }
    catch (IOException e) { }
 }
