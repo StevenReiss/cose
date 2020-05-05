@@ -37,6 +37,7 @@ package edu.brown.cs.cose.cosecommon;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -62,6 +63,7 @@ private CoseSearchLanguage search_language;
 private CoseSearchEngine search_engine;
 private CoseScopeType scope_type;
 private CoseSignature search_signature;
+private Set<String> specific_sources;
 
 
 
@@ -83,6 +85,7 @@ public CoseDefaultRequest()
    search_language = CoseSearchLanguage.JAVA;
    search_engine = CoseSearchEngine.SEARCHCODE;
    search_signature = null;
+   specific_sources = null;
 }
 
 
@@ -110,7 +113,17 @@ public void setCoseSearchType(CoseSearchType st)        { search_type = st; }
 @Override public CoseSearchLanguage getLanguage()       { return search_language; }
 public void setSearchLanguage(CoseSearchLanguage sl)    { search_language = sl; }
 
-@Override public Set<String> getSpecificSources()       { return null; }
+@Override public Set<String> getSpecificSources()       { return specific_sources; }
+public void addSpecificSource(Collection<String> srcs) 
+{
+   if (specific_sources == null) specific_sources = new HashSet<>();
+   specific_sources.addAll(srcs);
+}
+public void addSpecificSource(String src) 
+{
+   if (specific_sources == null) specific_sources = new HashSet<>();
+   specific_sources.add(src);
+}
 
 @Override public Set<CoseSearchEngine> getEngines()
 {
