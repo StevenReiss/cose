@@ -1,0 +1,9 @@
+<FAIT>
+   <METHOD NAME="edu.brown.cs.cose.cosecommon.CoseMaster.createMaster"
+	  CONSTRUCTOR='true' ARGS='*,0'>
+       <REPLACE>
+	  edu.brown.cs.cose.keysearch.KeySearchMaster(Ledu/brown/cs/cose/cosecommon/CoseRequest;)
+       </REPLACE>
+    </METHOD>
+</FAIT>
+

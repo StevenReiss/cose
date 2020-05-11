@@ -108,6 +108,8 @@ KeySearchRepoGithub(CoseRequest sr)
    if (!isRelevantSource(src)) return null;
 
    try {
+      int idx1 = src.lastIndexOf("@");
+      if (idx1 > 0) src = src.substring(0,idx1);
       int idx = src.indexOf(":");
       return new URI(src.substring(idx+1));
     }

@@ -73,6 +73,7 @@ import edu.brown.cs.cose.cosecommon.CoseResource;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.cose.result.ResultFactory;
 import edu.brown.cs.cose.scorer.ScorerAnalyzer;
+import edu.brown.cs.ivy.file.ConcurrentHashSet;
 import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.ivy.xml.IvyXml;
 
@@ -98,7 +99,8 @@ private Set<CoseSource> 	used_sources;
 private ResultFactory           result_factory;
 private PrintWriter             score_data_file;
 private FileChannel             score_channel;
-
+private Set<CoseResult>         do_recheck;
+private Map<CoseResult,Set<LoadPackageResult>> recheck_items;
 
 private static final Set<String> RESOURCE_EXTENSIONS;
 
@@ -132,6 +134,9 @@ public KeySearchMaster(CoseRequest req)
    cose_request = req;
    result_set = null;
    search_repos = new ArrayList<KeySearchRepo>();
+   recheck_items = new HashMap<>();
+   do_recheck = new ConcurrentHashSet<>();
+   
    for (CoseSearchEngine seng : req.getEngines()) {
       KeySearchRepo next = null;
       switch (seng) {
@@ -460,14 +465,16 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
 
 
-private void addPackageSolution(String code,CoseSource source,CoseSource lclsrc,CoseResult pfrag)
+private boolean addPackageSolution(String code,CoseSource source,CoseSource lclsrc,CoseResult pfrag)
 {
-   if (!pfrag.getSource().isSameRepository(lclsrc)) return;
-   if (!checkPackageSolution(code,source,lclsrc)) return;
+   if (!pfrag.getSource().isSameRepository(lclsrc)) return false;
+   if (!checkPackageSolution(code,source,lclsrc)) return false;
    CoseResult rslt = result_factory.createFileResult(source,code);
-   if (rslt == null) return;
+   if (rslt == null) return false;
 
    pfrag.addInnerResult(rslt);
+   
+   return true;
 }
 
 
@@ -963,8 +970,18 @@ private class LoadPackageResult implements Runnable {
             String cls = findInterfaceName(code);
             if (cls == null || cls.equals("")) return;
             boolean fnd = package_result.getEditText().contains(cls);
-            if (!fnd) return;
-            // System.err.println("ADD IFACE " + cls + " " + fnd + " " + orig_package);
+            synchronized (recheck_items) {
+               Set<LoadPackageResult> lprs = recheck_items.get(package_result);
+               if (lprs == null) {
+                  lprs = new HashSet<>();
+                  recheck_items.put(package_result,lprs);
+                }
+               if (!fnd) {
+                  lprs.add(this);
+                  return;
+                }
+               lprs.remove(this);
+             }   
             IvyLog.logD("COSE","ADD IFACE " + cls + " " + fnd + " " + orig_package);
             // should make sure iface is actually used
           }
@@ -972,8 +989,19 @@ private class LoadPackageResult implements Runnable {
             String cls = findTypeName(code);
             if (cls == null || cls.equals("")) return;
             boolean fnd = package_result.getEditText().contains(cls);
-            if (!fnd) return;
-            // System.err.println("ADD USED " + cls + " " + fnd + " " + orig_package);
+            synchronized (recheck_items) {
+               Set<LoadPackageResult> lprs = recheck_items.get(package_result);
+               if (lprs == null) {
+                  lprs = new HashSet<>();
+                  recheck_items.put(package_result,lprs);
+                }
+               if (!fnd) {
+                  lprs.add(this);
+                  return;
+                }
+               lprs.remove(this);
+             }   
+           
             IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + orig_package);
           }
        }
@@ -993,9 +1021,10 @@ private class LoadPackageResult implements Runnable {
          if (cls != null && cls.equals("BuildConfig")) return;
        }
       
-      addPackageSolution(code,package_source,src,package_result);
-   }
-
+      if (addPackageSolution(code,package_source,src,package_result)) {
+         do_recheck.add(package_result);
+       }
+    }
 
 }	// end of inner class LoadPackageResult
 
@@ -1063,6 +1092,13 @@ private class FinishPackageTask implements Runnable {
             ++retry_count;
             addTask(this);
             return;
+          }
+       }
+      
+      while (do_recheck.remove(package_result)) {
+         List<LoadPackageResult> lprs = new ArrayList<>(recheck_items.get(package_result));
+         for (LoadPackageResult lpr : lprs) {
+            lpr.run();
           }
        }
       

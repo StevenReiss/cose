@@ -274,8 +274,7 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
    int h2 = (hvl / 512) % 512;
    int h3 = (hvl / 512 / 512) % 4096;
 
-   File dtop = new File(base_directory,"S6$" + h1);
-   dtop = new File(dtop,"S6$" + h2);
+   File dtop = new File(base_directory,"S6$" + h1);   dtop = new File(dtop,"S6$" + h2);
    if (!dtop.exists() && !dtop.mkdirs()) return null;
 
    String dir0 = "S6$" + h3;
