@@ -45,6 +45,7 @@ import java.net.URI;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -1096,7 +1097,9 @@ private class FinishPackageTask implements Runnable {
        }
       
       while (do_recheck.remove(package_result)) {
-         List<LoadPackageResult> lprs = new ArrayList<>(recheck_items.get(package_result));
+         Collection<LoadPackageResult> clpr = recheck_items.get(package_result);
+         if (clpr == null) break;
+         List<LoadPackageResult> lprs = new ArrayList<>(clpr);
          for (LoadPackageResult lpr : lprs) {
             lpr.run();
           }
