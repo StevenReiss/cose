@@ -964,46 +964,24 @@ private class LoadPackageResult implements Runnable {
       
       CoseSource src = for_repo.createSource(page_uri,code,0);
       String pkg = findPackageName(code);
+      String cls = findTypeName(code);
       if (!pkg.equals(package_name)) return;
+      IvyLog.logD("COSE","Check load package result " + pkg + "." + cls + " FOR " + orig_package);
       if (orig_package != null && !pkg.equals(orig_package)) {
          // handle code from other packages
          if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_IFACE) {
-            String cls = findInterfaceName(code);
-            if (cls == null || cls.equals("")) return;
-            boolean fnd = package_result.getEditText().contains(cls);
-            synchronized (recheck_items) {
-               Set<LoadPackageResult> lprs = recheck_items.get(package_result);
-               if (lprs == null) {
-                  lprs = new HashSet<>();
-                  recheck_items.put(package_result,lprs);
-                }
-               if (!fnd) {
-                  lprs.add(this);
-                  return;
-                }
-               lprs.remove(this);
-             }   
-            IvyLog.logD("COSE","ADD IFACE " + cls + " " + fnd + " " + orig_package);
+            String ifc = findInterfaceName(code);
+            if (ifc == null || ifc.equals("")) return;
+            boolean fnd = package_result.getEditText().contains(ifc);
+            updateRecheck(fnd);
+            IvyLog.logD("COSE","ADD IFACE " + ifc + " " + fnd + " " + orig_package + " " + package_name);
             // should make sure iface is actually used
           }
          else if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_USED) {
-            String cls = findTypeName(code);
             if (cls == null || cls.equals("")) return;
             boolean fnd = package_result.getEditText().contains(cls);
-            synchronized (recheck_items) {
-               Set<LoadPackageResult> lprs = recheck_items.get(package_result);
-               if (lprs == null) {
-                  lprs = new HashSet<>();
-                  recheck_items.put(package_result,lprs);
-                }
-               if (!fnd) {
-                  lprs.add(this);
-                  return;
-                }
-               lprs.remove(this);
-             }   
-           
-            IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + orig_package);
+            updateRecheck(fnd);
+            IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + orig_package + " " + package_name);
           }
        }
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
@@ -1017,15 +995,38 @@ private class LoadPackageResult implements Runnable {
          if (!isui) return;
        }
       if (cose_request.getCoseSearchType() == CoseSearchType.ANDROIDUI) {
-         String cls = findClassName(code);
          if (cls != null && cls.equals("R")) return;
          if (cls != null && cls.equals("BuildConfig")) return;
        }
       
       if (addPackageSolution(code,package_source,src,package_result)) {
+         IvyLog.logD("COSE","SUCCESS ADD " + cls + " " + package_name + " TO " + orig_package); 
          do_recheck.add(package_result);
        }
+      else {
+         IvyLog.logD("COSE","FAILED ADD " + cls + " " + package_name + " TO " + orig_package); 
+       }
+      
     }
+   
+   
+   
+   private void updateRecheck(boolean fnd)
+   {
+      synchronized (recheck_items) {
+         Set<LoadPackageResult> lprs = recheck_items.get(package_result);
+         if (lprs == null) {
+            lprs = new HashSet<>();
+            recheck_items.put(package_result,lprs);
+          }
+         if (!fnd) {
+            IvyLog.logD("COSE","Add to recheck " + package_name + " for " + orig_package);
+            lprs.add(this);
+            return;
+          }
+         lprs.remove(this);
+       }   
+   }
 
 }	// end of inner class LoadPackageResult
 
@@ -1096,11 +1097,20 @@ private class FinishPackageTask implements Runnable {
           }
        }
       
+   
       while (do_recheck.remove(package_result)) {
-         Collection<LoadPackageResult> clpr = recheck_items.get(package_result);
-         if (clpr == null) break;
-         List<LoadPackageResult> lprs = new ArrayList<>(clpr);
+         IvyLog.logD("COSE","RECHECK " + package_result.getBasePackage());
+         List<LoadPackageResult> lprs;
+         synchronized (recheck_items) {
+            Collection<LoadPackageResult> clpr = recheck_items.get(package_result);
+            if (clpr == null) {
+               IvyLog.logD("COSE","Nothing to recheck");
+               break;
+             }
+            lprs = new ArrayList<>(clpr);
+          }
          for (LoadPackageResult lpr : lprs) {
+            IvyLog.logD("COSE","DO RECHECK FOR " + lpr.page_uri);
             lpr.run();
           }
        }

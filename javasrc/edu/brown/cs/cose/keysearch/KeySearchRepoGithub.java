@@ -136,6 +136,9 @@ protected boolean isRelevantSource(String src)
 @Override public String getAuthorization()
 {
    getOAuthToken();
+   if (oauth_token == null) {
+      if (github_auth != null) return github_auth;
+    }
    return "token " + oauth_token.getToken();
 }
 
@@ -424,17 +427,28 @@ private synchronized static void getOAuthToken()
 {
    if (oauth_token != null) return;
 
+   String altauth = null;
    if (github_auth == null) {
       String token = loadGithubUserToken();
-      if (token != null) github_auth = "token " + token;
-      else {
-         String userpass = loadGithubUserInfo();
-         if (userpass == null) return;
-         github_auth = "Basic " + userpass;
+      if (token != null) {
+         github_auth = "token " + token;
+         oauth_token = new OAuthData(token);
+         return;
+       }      
+      String userpass = loadGithubUserInfo();
+      if (userpass != null) {
+         if (github_auth == null) github_auth = "Basic " + userpass;
+         else altauth = "Basic " + userpass;
        }
     }
 
    Object o1 = doGithubAuthenticate(null,"GET",null);
+   if (o1 == null && altauth != null) {
+      github_auth = altauth;
+      o1 = doGithubAuthenticate(null,"GET",null);
+    }
+   if (o1 == null) return;
+   
    JSONArray j1 = (JSONArray) o1;
    try {
       for (int i = 0; i < j1.length(); ++i) {
@@ -531,7 +545,7 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
       HttpURLConnection hc1 = (HttpURLConnection) url1.openConnection();
       hc1.setDoInput(true);
       hc1.setRequestProperty("Authorization",github_auth);
-      hc1.setRequestProperty("User-Agent","s6");
+      hc1.setRequestProperty("User-Agent","S6");
       if (type != null) hc1.setRequestMethod(type);
 
       if (inps != null) {
@@ -545,6 +559,7 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
        }
 
       InputStream ins = hc1.getInputStream();
+      
       try (BufferedReader r = new BufferedReader(new InputStreamReader(ins))) {
          StringBuffer buf = new StringBuffer();
          for ( ; ; ) {
@@ -608,6 +623,12 @@ private static class OAuthData {
       if (token_id != null && token_id.equals("")) token_id = null;
       is_s6token = true;
     }
+   
+   OAuthData(String tok) {
+      token_id = tok;
+      is_s6token = false;
+      oauth_id = null;
+    }
 
    String getToken()			{ return token_id; }
    boolean isValid()			{ return is_s6token && token_id != null; }
@@ -618,7 +639,7 @@ private static class OAuthData {
    String getAuthId()			{ return oauth_id; }
 
    private void saveToken() {
-      if (token_id != null) {
+      if (token_id != null && is_s6token) {
 	 try {
 	    FileWriter fw = new FileWriter(TOKEN_FILE,true);
 	    fw.write(hash_token);
