@@ -48,6 +48,7 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
+import org.eclipse.jdt.core.dom.Annotation;
 import org.eclipse.jdt.core.dom.ChildPropertyDescriptor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
@@ -368,6 +369,15 @@ private static class FindVisitor extends ASTVisitor {
             return false;
          case TESTCLASS :
             if (n.getName().getIdentifier().startsWith("test")) is_test = true;
+            for (Object o : n.modifiers()) {
+               if (o instanceof Annotation) {
+                  Annotation an = (Annotation) o;
+                  String anm = an.getTypeName().getFullyQualifiedName();
+                  int idx = anm.lastIndexOf(".");
+                  if (idx > 0) anm = anm.substring(idx+1);
+                  if (anm.equals("Test")) is_test = true;
+                }
+             }
             if (is_test) return false;
             return true;
        }
