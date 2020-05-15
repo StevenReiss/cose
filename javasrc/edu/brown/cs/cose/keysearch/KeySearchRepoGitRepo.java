@@ -106,6 +106,11 @@ protected boolean isRelevantSource(String src)
 
 @Override boolean hasMoreSearchPages(URI u,String cnts,int page)
 {
+   if (u != null) {
+      if (cnts != null && cnts.contains("\"incomplete_results\":true")) 
+         return true;
+      return false;
+    }
    if (page+1 < use_repos.size()) return true;
    return false;
 }

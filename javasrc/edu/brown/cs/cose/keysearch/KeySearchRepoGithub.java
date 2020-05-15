@@ -269,6 +269,9 @@ List<URI> getSearchPageResults(Element jsoup)
 @Override boolean hasMoreSearchPages(URI uri,String cnts,int page)
 {
    if (cnts == null) return false;
+   if (cnts.startsWith("{")) {
+      return cnts.contains("\"incomplete_results\":true");
+    }
    return cnts.contains("class=\"next_page\"");
 }
 
