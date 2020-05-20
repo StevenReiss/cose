@@ -76,6 +76,7 @@ import edu.brown.cs.cose.result.ResultFactory;
 import edu.brown.cs.cose.scorer.ScorerAnalyzer;
 import edu.brown.cs.ivy.file.ConcurrentHashSet;
 import edu.brown.cs.ivy.file.IvyLog;
+import edu.brown.cs.ivy.file.IvyLog.LoggerThread;
 import edu.brown.cs.ivy.xml.IvyXml;
 
 
@@ -966,7 +967,8 @@ private class LoadPackageResult implements Runnable {
       String pkg = findPackageName(code);
       String cls = findTypeName(code);
       if (!pkg.equals(package_name)) return;
-      IvyLog.logD("COSE","Check load package result " + pkg + "." + cls + " FOR " + orig_package);
+      IvyLog.logD("COSE","Check load package result " + pkg + "@" + cls + " FOR " + orig_package);
+      IvyLog.logD("COSE","Check type " + cose_request.getCoseScopeType() + " " + " FOR " + orig_package);
       if (orig_package != null && !pkg.equals(orig_package)) {
          // handle code from other packages
          if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_IFACE) {
@@ -974,16 +976,29 @@ private class LoadPackageResult implements Runnable {
             if (ifc == null || ifc.equals("")) return;
             boolean fnd = package_result.getEditText().contains(ifc);
             updateRecheck(fnd);
-            IvyLog.logD("COSE","ADD IFACE " + ifc + " " + fnd + " " + orig_package + " " + package_name);
+            IvyLog.logD("COSE","ADD IFACE " + ifc + " " + fnd + " " + package_name + " " + orig_package);
             // should make sure iface is actually used
+            if (!fnd) return;
           }
          else if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_USED) {
-            if (cls == null || cls.equals("")) return;
+            if (cls == null || cls.equals("")) {
+               IvyLog.logD("COSE","EMPTY CLASS");
+               return;
+             }
             boolean fnd = package_result.getEditText().contains(cls);
+            IvyLog.logD("COSE","READY TO UPDATE RECHECK FOR " + orig_package);
             updateRecheck(fnd);
-            IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + orig_package + " " + package_name);
+            IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + package_name + " " + orig_package);
+            if (!fnd) return;
+          }
+         else {
+            IvyLog.logD("COSE","ADD OTHER " + cls + " " + package_name + " " + orig_package);
           }
        }
+      else {
+         IvyLog.logD("COSE","SAME PACKAGE ADD "  + cls + " " + package_name + " " + orig_package);
+       }
+       
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
          String ext = findExtendsName(code);
          boolean isui = false;
@@ -1024,6 +1039,7 @@ private class LoadPackageResult implements Runnable {
             lprs.add(this);
             return;
           }
+         IvyLog.logD("COSE","Remove recheck " + package_name + " for " + orig_package);
          lprs.remove(this);
        }   
    }
@@ -1104,13 +1120,13 @@ private class FinishPackageTask implements Runnable {
          synchronized (recheck_items) {
             Collection<LoadPackageResult> clpr = recheck_items.get(package_result);
             if (clpr == null) {
-               IvyLog.logD("COSE","Nothing to recheck");
+               IvyLog.logD("COSE","Nothing to recheck for " + package_result.getBasePackage());
                break;
              }
             lprs = new ArrayList<>(clpr);
           }
          for (LoadPackageResult lpr : lprs) {
-            IvyLog.logD("COSE","DO RECHECK FOR " + lpr.page_uri);
+            IvyLog.logD("COSE","DO RECHECK OF " + lpr.page_uri + " FOR " + package_result.getBasePackage());
             lpr.run();
           }
        }
@@ -1286,8 +1302,7 @@ private class ThreadPool extends ThreadPoolExecutor implements ThreadFactory {
     }
 
    @Override public Thread newThread(Runnable r) {
-      Thread th = new Thread(r,"Cose_Search_" + thread_counter.incrementAndGet());
-      th.setDaemon(true);
+      Thread th = new CoseSearchThread(r);
       return th;
     }
 
@@ -1317,6 +1332,23 @@ private class ThreadPool extends ThreadPoolExecutor implements ThreadFactory {
     }
 
 }	// end of inner class ThreadPool
+
+
+
+private static class CoseSearchThread extends Thread implements LoggerThread {
+
+   private int thread_id;
+   
+   CoseSearchThread(Runnable r) { 
+      super(r);
+      thread_id = thread_counter.incrementAndGet();
+      setName("Cose_Search_" + thread_id);
+      setDaemon(true);
+    }
+   
+   @Override public int getLogId()              { return thread_id; }
+   
+}       // end of inner class CoseSearchThread
 
 
 }	// end of class KeySearchMaster

@@ -79,7 +79,7 @@ ResultGroup(CoseSource src)
 @Override public CoseResultType getResultType()     { return CoseResultType.PACKAGE; }
 
 
-@Override public void addInnerResult(CoseResult cf)
+@Override synchronized public void addInnerResult(CoseResult cf)
 {
    inner_results.add(cf);
 }

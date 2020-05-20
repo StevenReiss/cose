@@ -543,6 +543,7 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
       else {
 	 String fq = getImportRename(id,pnm,pkgs);
 	 if (fq == null) fq = id.getName().getFullyQualifiedName();
+         if (fq == null) continue;
 	 imps.add(fq);
        }
     }
@@ -584,8 +585,8 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
 private static void fixNameConflicts(CompilationUnit orig,CompilationUnit add)
 {
    Set<String> imptyps = new HashSet<String>();
-   for (Iterator<?> it = orig.imports().iterator(); it.hasNext(); ) {
-      ImportDeclaration id = (ImportDeclaration) it.next();
+   for (Object o : orig.imports()) {
+      ImportDeclaration id = (ImportDeclaration) o;
       if (id.isOnDemand()) continue;
       if (id.isStatic()) continue;
       String nm = id.getName().getFullyQualifiedName();
@@ -595,6 +596,7 @@ private static void fixNameConflicts(CompilationUnit orig,CompilationUnit add)
    Set<String> checks = new HashSet<String>(check_names);
    for (Iterator<?> it = add.imports().iterator(); it.hasNext(); ) {
       ImportDeclaration id = (ImportDeclaration) it.next();
+      if (id == null) continue;
       if (id.isOnDemand()) continue;
       if (id.isStatic()) continue;
       String nm = id.getName().getFullyQualifiedName();
@@ -977,7 +979,7 @@ static class JavaPackageResult extends ResultGroup {
       return cloneJavaResult(this,o,data);
     }
    
-   private void buildRoot() {
+   private synchronized void buildRoot() {
       if (ast_node != null) return;
       if (inner_results.size() == 0) return;
       
