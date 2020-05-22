@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              CoseRequest.java                                                */
+/*              CoseResultEditor.java                                           */
 /*                                                                              */
-/*      External representation of a request for searching                      */
+/*      User class to edit results before they are used                         */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -35,37 +35,18 @@
 
 package edu.brown.cs.cose.cosecommon;
 
-import java.util.List;
-import java.util.Set;
 
-public interface CoseRequest extends CoseConstants
+
+public interface CoseResultEditor extends CoseConstants
 {
 
-int getNumberOfThreads();
-int getNumberOfResults();
+String editFileResult(String orig);
 
-CoseSearchType getCoseSearchType();
-CoseScopeType getCoseScopeType();
-List<CoseKeywordSet> getCoseKeywordSets();
-CoseSearchLanguage getLanguage();
-Set<CoseSearchEngine> getEngines();
-Set<String> getSpecificSources();
-CoseSignature getCoseSignature();
-List<String> getKeyTerms();
-String editSource(String orig);
 
-boolean useAndroid();  
-
-boolean doDebug();
-
-interface CoseKeywordSet {
-   List<String> getWords();
-}
-
-}       // end of interface CoseRequest
+}       // end of interface CoseResultEditor
 
 
 
 
-/* end of CoseRequest.java */
+/* end of CoseResultEditor.java */
 

@@ -355,6 +355,8 @@ private class ResultBuilder implements Runnable {
    @Override public void run() {
       String txt = for_repo.getSourcePage(initial_uri);
       if (txt == null) return;
+      txt = cose_request.editSource(txt);
+      
       CoseSource src = for_repo.createSource(initial_uri,txt,result_index);
       if (src == null) return;
       CoseResult pfrag = null;
@@ -908,7 +910,7 @@ private class ScanPackageSearchResults implements Runnable {
    private KeySearchQueue package_queue;
 
    ScanPackageSearchResults(KeySearchRepo repo,String pkg,CoseSource pkgsrc,
-	 CoseResult pkgfrag,KeySearchQueue pkgq) {
+         CoseResult pkgfrag,KeySearchQueue pkgq) {
       for_repo = repo;
       project_id = pkgsrc.getProjectId();
       package_name = pkg;

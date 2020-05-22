@@ -64,6 +64,7 @@ private CoseSearchEngine search_engine;
 private CoseScopeType scope_type;
 private CoseSignature search_signature;
 private Set<String> specific_sources;
+private CoseResultEditor result_editor;
 
 
 
@@ -86,6 +87,7 @@ public CoseDefaultRequest()
    search_engine = CoseSearchEngine.SEARCHCODE;
    search_signature = null;
    specific_sources = null;
+   result_editor = CoseMaster.createJavaEditor();
 }
 
 
@@ -141,6 +143,16 @@ public void setCoseSignature(CoseSignature cs)          { search_signature = cs;
  { 
    return new ArrayList<>(key_terms);
 }
+
+@Override public String editSource(String orig)
+{
+   if (result_editor == null || search_language != CoseSearchLanguage.JAVA) return orig;
+   return result_editor.editFileResult(orig);
+}
+
+
+public CoseResultEditor getResultEditor()     { return result_editor; }
+public void setResultEditor(CoseResultEditor re)        { result_editor = re; }
 
 
 

@@ -39,6 +39,20 @@ static public CoseMaster createMaster(CoseRequest req)
 }
 
 
+static public CoseResultEditor createJavaEditor() {
+   String cls = "edu.brown.cs.cose.result.ResultJavaEditor";
+   try {
+      Class<?> cz = Class.forName(cls);
+      Constructor<?> cnst = cz.getConstructor();
+      CoseResultEditor cr = (CoseResultEditor) cnst.newInstance();
+      return cr;
+    }
+   catch (Exception e) {
+      IvyLog.logE("COSE","Can't create COSE Java Editor",e);
+      return null;
+    }
+}
+
 
 
 }       // end of interface CoseMaster
