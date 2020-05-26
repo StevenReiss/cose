@@ -79,12 +79,6 @@ public ResultJavaEditor()
 {
    if (!orig.contains("assert")) return orig;
    
-   for (int idx = orig.indexOf("assert"); idx >= 0; idx = orig.indexOf("assert",idx+1)) {
-      int idx1 = Math.max(idx-10,0);
-      int idx2 = Math.min(idx+20,orig.length());
-      System.err.println("FOUND: " + orig.substring(idx1,idx2));
-    }
-   
    String txt = orig;
    Matcher m = assert_pattern.matcher(orig);
    while (m.find()) {

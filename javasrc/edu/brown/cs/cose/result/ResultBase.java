@@ -165,7 +165,7 @@ protected void setSource(CoseSource src)
    return rslt;
 }
 
-@Override public Set<String> getRelatedProjects()               { return null; }
+@Override public Set<String> getRelatedPackages()               { return null; }
 @Override public Set<String> getUsedProjects()                  { return null; }
 
 

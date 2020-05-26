@@ -377,7 +377,7 @@ protected static class GithubSource extends KeySearchSource implements CoseSourc
       base_link = base;
       int pos = 1;
       for (int i = 0; i < 3; ++i) {
-	 pos = base.indexOf("/",pos);
+         pos = base.indexOf("/",pos);
        }
       base_path = base.substring(pos+1);
     }

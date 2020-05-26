@@ -60,7 +60,7 @@ void addInnerResult(CoseResult cf);
 void addResource(CoseResource cr);
 Collection<CoseResult> getInnerResults();
 
-Set<String> getRelatedProjects();
+Set<String> getRelatedPackages();
 Set<String> getUsedProjects();
 
 Object getStructure();          // ASTNode, Element, .

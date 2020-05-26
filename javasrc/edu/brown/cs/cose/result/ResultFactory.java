@@ -90,6 +90,7 @@ public CoseResult createFileResult(CoseSource source,String code)
 {
    switch (for_request.getLanguage()) {
       case JAVA :
+         code = for_request.editSource(code);
          return new ResultJava.JavaFileResult(source,code);
       case JAVASCRIPT :
       case XML :

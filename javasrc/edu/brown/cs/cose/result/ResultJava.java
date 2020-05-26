@@ -813,7 +813,7 @@ static class JavaFileResult extends ResultFile {
    
    @Override public String getEditText()                { return getText(); }
    
-   @Override public Set<String> getRelatedProjects(){ 
+   @Override public Set<String> getRelatedPackages(){ 
       return getRelatedJavaProjects(this);
     }
    
@@ -968,7 +968,7 @@ static class JavaPackageResult extends ResultGroup {
       ast_node = null;
     }
    
-   @Override public Set<String> getRelatedProjects(){ 
+   @Override public Set<String> getRelatedPackages(){ 
       return getRelatedJavaProjects(this);
     }
    @Override public Set<String> getUsedProjects(){ 

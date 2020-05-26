@@ -355,7 +355,6 @@ private class ResultBuilder implements Runnable {
    @Override public void run() {
       String txt = for_repo.getSourcePage(initial_uri);
       if (txt == null) return;
-      txt = cose_request.editSource(txt);
       
       CoseSource src = for_repo.createSource(initial_uri,txt,result_index);
       if (src == null) return;
@@ -807,29 +806,29 @@ private class AndroidClassLoader implements Runnable {
 
    @Override public void run() {
       KeySearchClassData kcd = for_repo.getPackageClassResult(manifest_source,
-	    package_name,class_name,page_number);
-
+            package_name,class_name,page_number);
+   
       if (kcd != null && kcd.getURI() != null) {
-	 synchronized (local_items) {
-	    if (!local_items.add(kcd.getSource().getName())) {
-	       return;
-	     }
-	  }
-	 try {
-	    CoseResult rslt = result_factory.createFileResult(kcd.getSource(),kcd.getCode());
-	    if (rslt == null) return;
-	    package_result.addInnerResult(rslt);
-	  }
-	 catch (Throwable t) {
-	    IvyLog.logE("COSE","PACKAGE PROBLEM",t);
-	  }
+         synchronized (local_items) {
+            if (!local_items.add(kcd.getSource().getName())) {
+               return;
+             }
+          }
+         try {
+            CoseResult rslt = result_factory.createFileResult(kcd.getSource(),kcd.getCode());
+            if (rslt == null) return;
+            package_result.addInnerResult(rslt);
+          }
+         catch (Throwable t) {
+            IvyLog.logE("COSE","PACKAGE PROBLEM",t);
+          }
        }
       else {
-	 IvyLog.logI("COSE","ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
-	 if (kcd != null) {
-	    ++page_number;
-	    addSubtask(this,sub_waits);
-	  }
+         IvyLog.logI("COSE","ANDROID class " + package_name + "." + class_name + " not found on page " + page_number);
+         if (kcd != null) {
+            ++page_number;
+            addSubtask(this,sub_waits);
+          }
        }
     }
 
@@ -1087,7 +1086,7 @@ private class FinishPackageTask implements Runnable {
          case SYSTEM :
          case PACKAGE_IFACE :
          case PACKAGE_USED :
-            pkgs = package_result.getRelatedProjects();
+            pkgs = package_result.getRelatedPackages();
             break;
          case PACKAGE :
             pkgs = package_result.getUsedProjects();

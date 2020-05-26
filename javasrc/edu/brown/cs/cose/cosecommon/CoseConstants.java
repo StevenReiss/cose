@@ -110,11 +110,6 @@ public static boolean isRelatedPackage(String p1,String p2)
    if (p1.equals(p2)) return true;
    if (p1.startsWith(p2)) return true;
    else if (p2.startsWith(p1)) return true;
-   if (p1.length() > p2.length()) {
-      String p = p1;
-      p1 = p2;
-      p2 = p;
-    }
    
    Set<String> pfxset = new HashSet<>();
    for (String s : PREFIX_PATHS) pfxset.add(s);
@@ -128,15 +123,16 @@ public static boolean isRelatedPackage(String p1,String p2)
        }
     }
    if (pfx == null) pfx = p1.substring(0, minlen);
-   if (!pfx.endsWith(".")) {
-      int idx = pfx.lastIndexOf(".");
-      pfx = pfx.substring(0,idx+1);
-    }
-   
    if (pfx.length() == 0) return false;
-   pfx = pfx.substring(0,pfx.length()-1);
+   
+   int idx = pfx.lastIndexOf(".");
+   if (idx < 0) return false;
+   pfx = pfx.substring(0,idx);
+   
    String [] parts = pfx.split("\\.");
-   String [] minparts = p1.split("\\.");
+   // String [] p1parts = p1.split("\\.");
+   // String [] p2parts = p2.split("\\.");
+   // int psize = Math.min(p1parts.length,p2parts.length);
 
    int ign = 0;
    for (ign = 0; ign < parts.length; ++ign) {
@@ -144,7 +140,7 @@ public static boolean isRelatedPackage(String p1,String p2)
     }
    int match = parts.length - ign;
    if (match == 0) return false;
-   if (match < minparts.length - 2) return false;
+   // if (match < psize - 2) return false;
    
    return true;
 }
