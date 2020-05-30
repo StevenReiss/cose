@@ -37,6 +37,7 @@ package edu.brown.cs.cose.result;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -537,6 +538,7 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
     }
    
    Set<String> imps = new HashSet<String>();
+   // go over existing imports and remove unneeded ones, renaming others
    for (Iterator<?> it = rn.imports().iterator(); it.hasNext(); ) {
       ImportDeclaration id = (ImportDeclaration) it.next();
       if (importFromPackage(id,pkgs)) it.remove();
@@ -684,16 +686,18 @@ private static class NameChecker extends ASTVisitor {
 
 private static boolean importFromPackage(ImportDeclaration id,Set<String> pkgs)
 {
+   if (id.isStatic()) return false;
+   
    for (String pkg : pkgs) {
       String fq = id.getName().getFullyQualifiedName();
       if (id.isOnDemand() && pkg.equals(fq)) return true;
-      
       if (!fq.startsWith(pkg)) continue;
       int idx = pkg.length();
       if (fq.length() <= idx+2) continue;
       if (fq.charAt(idx) != '.') continue;
       String rnm = fq.substring(idx+1);
-      if (Character.isUpperCase(rnm.charAt(0)) && rnm.indexOf(".") < 0) return true;
+      int idx1 = rnm.indexOf(".");
+      if (idx1 < 0 && !id.isOnDemand()) return true;
     }
    
    return false;
@@ -705,16 +709,15 @@ private static String getImportRename(ImportDeclaration id,String pnm,Set<String
 {
    String bnm = null;
    for (String pkg : pkgs) {
-      if (pkg.equals(pnm)) continue;
+      // if (pkg.equals(pnm)) continue;
       String fq = id.getName().getFullyQualifiedName();
       if (id.isOnDemand()) continue;
       if (!fq.startsWith(pkg)) continue;
       int idx = pkg.length();
-      if (fq.length() <= idx) continue;
-      if (fq.charAt(idx) != '.') continue;
       if (fq.length() <= idx+2) continue;
+      if (fq.charAt(idx) != '.') continue;
       String rnm = fq.substring(idx+1);
-      if (!Character.isUpperCase(rnm.charAt(0))) continue;
+      // if (!Character.isUpperCase(rnm.charAt(0))) continue;
       if (bnm == null || bnm.length() > rnm.length()) bnm = rnm;
     }
    
@@ -735,11 +738,27 @@ private static String getImportRename(ImportDeclaration id,String pnm,Set<String
 
 public static Set<String> getRelatedJavaProjects(CoseResult fj)
 {
+   Collection<CoseResult> lookat = fj.getInnerResults();
+   if (lookat == null) {
+      lookat = Collections.singletonList(fj);
+    }
+   
    Set<String> rslt = new HashSet<String>();
-   CompilationUnit cu = (CompilationUnit) fj.getStructure();
-   PackageDeclaration pd = cu.getPackage();
-   if (pd == null) return rslt;
-   String nm = pd.getName().getFullyQualifiedName();
+   String pnm = null;
+   String nm = null;
+   for (CoseResult cr : lookat) {
+      CompilationUnit cu = (CompilationUnit) cr.getStructure();
+      PackageDeclaration pd = cu.getPackage();
+      if (pnm == null) {
+         if (pd == null) return null;
+         pnm = pd.getName().getFullyQualifiedName();
+         nm = pnm;
+       }
+      else {
+         String xnm = pd.getName().getFullyQualifiedName();
+         if (xnm.length() < nm.length()) nm = xnm;
+       }
+    }
    if (fj.getPackages() != null) {
       for (String s : fj.getPackages()) {
 	 if (s.length() < nm.length())
@@ -747,17 +766,29 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
        }
     }
    
-   for (Object o : cu.imports()) {
-      ImportDeclaration id = (ImportDeclaration) o;
-      if (id.isStatic()) continue;
-      String inm = id.getName().getFullyQualifiedName();
-      if (!id.isOnDemand()) {
-	 int idx = inm.lastIndexOf(".");
-	 if (idx < 0) continue;
-	 inm = inm.substring(0,idx);
+   for (CoseResult cr : lookat) {
+      CompilationUnit cu = (CompilationUnit) cr.getStructure();
+      for (Object o : cu.imports()) {
+         ImportDeclaration id = (ImportDeclaration) o;
+         if (id.isStatic()) continue;
+         String inm = id.getName().getFullyQualifiedName();
+         if (id.isStatic()) {
+            if (!id.isOnDemand()) {
+               int idx = inm.lastIndexOf(".");
+               if (idx <= 0) continue;
+               int idx1 = inm.lastIndexOf(".",idx-1);
+               if (idx1 < 0) continue;
+               inm = inm.substring(0,idx1);
+             }
+          }
+         else if (!id.isOnDemand()) {
+            int idx = inm.lastIndexOf(".");
+            if (idx < 0) continue;
+            inm = inm.substring(0,idx);
+          }
+         if (inm.equals(nm)) continue;
+         if (CoseConstants.isRelatedPackage(nm,inm)) rslt.add(inm); 
        }
-      if (inm.equals(nm)) continue;
-      if (CoseConstants.isRelatedPackage(nm,inm)) rslt.add(inm);
     }
    
    return rslt;
@@ -951,20 +982,35 @@ static class JavaPackageResult extends ResultGroup {
     }
    
    @Override public Collection<String> getPackages() {
-      return new ArrayList<String>(used_packages);
+      return new ArrayList<>(used_packages);
     }
    @Override public String getBasePackage() {
-      if (base_package == null && ast_node == null) buildRoot();
+      if (base_package == null) {
+         if (inner_results.isEmpty()) return null;
+         CompilationUnit cu = (CompilationUnit) inner_results.get(0).getStructure();
+         PackageDeclaration pd = cu.getPackage();
+         if (pd != null) {
+            base_package = pd.getName().getFullyQualifiedName();
+          }
+       }
       return base_package;
     }
    @Override public boolean addPackage(String pkg) {
-      if (ast_node == null) buildRoot();
-      return used_packages.add(pkg);
+      if (used_packages.add(pkg)) {
+         ast_node = null;
+         return true;
+       }
+      return false;
     }
    
    @Override public synchronized void addInnerResult(CoseResult sf) {
       super.addInnerResult(sf);
-      JcompAst.setKeep((ASTNode) sf.getStructure(),false);
+      CompilationUnit cu = (CompilationUnit) sf.getStructure();
+      JcompAst.setKeep(cu,false);
+      if (base_package == null) {
+         String bp = getBasePackage();
+         if (bp != null) used_packages.add(bp);
+       }
       ast_node = null;
     }
    

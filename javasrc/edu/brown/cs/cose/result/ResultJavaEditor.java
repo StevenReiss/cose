@@ -85,7 +85,7 @@ public ResultJavaEditor()
       int idx = m.start(2);
       int eidx = m.end(2);
       // replacement must be of same length to avoid restarting matcher
-      String ntxt = orig.substring(0,idx) + "assrtt" + orig.substring(eidx);
+      String ntxt = txt.substring(0,idx) + "assrtt" + txt.substring(eidx);
       txt = ntxt;
     }
    

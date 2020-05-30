@@ -956,8 +956,7 @@ private class LoadPackageResult implements Runnable {
       package_source = pkgsrc;
       package_result = pkgfrag;
       orig_package = null;
-      String ptxt = pkgfrag.getEditText();
-      if (ptxt != null) orig_package = findPackageName(ptxt);
+      orig_package = pkgfrag.getBasePackage();
     }
 
    @Override public void run() {
@@ -968,6 +967,7 @@ private class LoadPackageResult implements Runnable {
       String pkg = findPackageName(code);
       String cls = findTypeName(code);
       if (!pkg.equals(package_name)) return;
+      package_result.addPackage(pkg);
       IvyLog.logD("COSE","Check load package result " + pkg + "@" + cls + " FOR " + orig_package);
       IvyLog.logD("COSE","Check type " + cose_request.getCoseScopeType() + " " + " FOR " + orig_package);
       if (orig_package != null && !pkg.equals(orig_package)) {
@@ -1062,14 +1062,14 @@ private class FinishPackageTask implements Runnable {
    private KeySearchQueue package_queue;
    private CoseSource package_source;
    private CoseResult package_result;
-   private int retry_count;
+   private Set<String> checked_packages;
 
    FinishPackageTask(KeySearchRepo repo,CoseResult pkgfrag,CoseSource pkgsrc,KeySearchQueue pkgq) {
       for_repo = repo;
       package_queue = pkgq;
       package_source = pkgsrc;
       package_result = pkgfrag;
-      retry_count = 0;
+      checked_packages = new HashSet<>();
     }
 
    @Override public void run() {
@@ -1096,25 +1096,19 @@ private class FinishPackageTask implements Runnable {
        }
    
       if (pkgs != null) {
-         if (cose_request.getCoseSearchType() != CoseSearchType.ANDROIDUI && retry_count > 0) {
-            for (Iterator<String> it = pkgs.iterator(); it.hasNext(); ) {
-               String p = it.next();
-               if (!package_result.addPackage(p)) it.remove();
-             }
-          }
+         pkgs.removeAll(checked_packages);
+         checked_packages.addAll(pkgs);
          if (pkgs.size() > 0) {
             for (String pkg : pkgs) {
                ScanPackageSearchResults spsr = new ScanPackageSearchResults(for_repo,pkg,
                      package_source,package_result,package_queue);
                addSubtask(spsr,package_queue);
              }
-            ++retry_count;
             addTask(this);
             return;
           }
        }
       
-   
       while (do_recheck.remove(package_result)) {
          IvyLog.logD("COSE","RECHECK " + package_result.getBasePackage());
          List<LoadPackageResult> lprs;
