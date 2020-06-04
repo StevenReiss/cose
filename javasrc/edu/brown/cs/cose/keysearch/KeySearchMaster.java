@@ -967,6 +967,7 @@ private class LoadPackageResult implements Runnable {
       String pkg = findPackageName(code);
       String cls = findTypeName(code);
       if (!pkg.equals(package_name)) return;
+      if (cls == null) return;
       package_result.addPackage(pkg);
       IvyLog.logD("COSE","Check load package result " + pkg + "@" + cls + " FOR " + orig_package);
       IvyLog.logD("COSE","Check type " + cose_request.getCoseScopeType() + " " + " FOR " + orig_package);
@@ -1200,7 +1201,7 @@ static String findPackageName(String text)
 
 static String findClassName(String text)
 {
-   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)\\s+((extends\\s)|(implements\\s)|\\{)";
+   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s*(\\w+)";
    Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
    Matcher mat = pat.matcher(text);
    if (!mat.find()) return "";
@@ -1211,7 +1212,7 @@ static String findClassName(String text)
 
 static String findTypeName(String text)
 {
-   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)\\s+((extends\\s)|(implements\\s)|\\{)";
+   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)";
    Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
    Matcher mat = pat.matcher(text);
    if (!mat.find()) return null;
@@ -1223,13 +1224,13 @@ static String findTypeName(String text)
 
 static String findInterfaceName(String text)
 {
-   String pats = "\\s*((public)\\s+)*interface\\s+(\\w+)\\s+((extends\\s)|\\{)";
+   String pats = "\\s*((public)\\s+)*interface\\s+(\\w+)";
    Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
    Matcher mat = pat.matcher(text);
    if (!mat.find()) return null;
    String cls = mat.group(3);
    
-   String patcs = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)\\s+((extends\\s)|(implements\\s)|\\{)";
+   String patcs = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)";
    Pattern patc = Pattern.compile(patcs,Pattern.MULTILINE);
    Matcher matc = patc.matcher(text);
    if (matc.find()) {
