@@ -1,11 +1,13 @@
 <project name='cose.keysearch' default='compile'>
 
-   <property name='PRO' value='/pro' />
-   <property name='COSE' value='/research/people/spr/cose' />
-   <property name='COSELIB' value='/research/people/spr/cose/lib' />
+   <property file='../../../../../../build.properties' />
+   <property name='PRO' value='/research/people/spr' />
+   <available file='${PRO}/ivy' type="dir" property="ivy.present" />
+   <property name='IVYBIN' value='${PRO}/ivy/java' />
+   <property name='COSE' value='${PRO}/cose' />
+   <property name='COSELIB' value='${COSE}/lib' />
    <property name='IVY' value='${PRO}/ivy/java' />
    <property name='IVYLIB' value='${PRO}/ivy/lib' />
-
 
    <path id='cose.classpath'>
       <pathelement location='${COSE}/java' />

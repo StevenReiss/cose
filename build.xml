@@ -1,5 +1,20 @@
 <project name='cose' default='jar'>
 
+   <available file="./build.properties" type='file' property='setup.done' />
+
+   <path id='setuppath'>
+      <pathelement location='..' />
+   </path>
+   <path id='spurpath'>
+      <pathelement location='.' />
+   </path>
+   <property name='setupfile' refid='setuppath' />
+   <property name='spurfile' refid='spurpath' />
+   <target name='setup' unless='setup.done'>
+      <echo file='./build.properties' message="PRO=${setupfile}${line.separator}" />
+      <echo file='./build.properties' message='COSE=${spurfile}${line.separator}' append='true' />
+      <mkdir dir='./java/edu/brown/cs/cose' />
+   </target>
    <path id='cose.classpath'>
       <pathelement location='java' />
       <pathelement location='/pro/ivy/lib/ivy.jar' />
@@ -21,7 +36,7 @@
       <zip zipfile='lib/apidoc.zip' basedir='doc' />
    </target>
 
-   <target name='all'>
+   <target name='all' depends='setup'>
       <ant antfile='build.xml' dir='javasrc' />
    </target>
 
