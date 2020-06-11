@@ -124,10 +124,10 @@ public String getLicenseUid()                   { return license_uid; }
    if (exact) return false;
    
    String pf1 = full.substring(idx1+1,idx2);
-   int idx5 = pfx.indexOf("//");
-   int idx6 = pfx.indexOf("/",idx5+2);
-   int idx7 = pfx.indexOf("/",idx6+1);
-   String pf2 = pfx.substring(0,idx7);
+   int idx5 = pf1.indexOf("//");
+   int idx6 = pf1.indexOf("/",idx5+2);
+   int idx7 = pf1.indexOf("/",idx6+1);
+   String pf2 = pf1.substring(0,idx7);
    if (uri.contains(pf2)) return true;
    
    return false;
