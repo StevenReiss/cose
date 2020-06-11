@@ -470,7 +470,7 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
 private boolean addPackageSolution(String code,CoseSource source,CoseSource lclsrc,CoseResult pfrag)
 {
-   if (!pfrag.getSource().isSameRepository(lclsrc)) return false;
+   if (!pfrag.getSource().isRelatedRepository(lclsrc,false)) return false;
    if (!checkPackageSolution(code,source,lclsrc)) return false;
    CoseResult rslt = result_factory.createFileResult(source,code);
    if (rslt == null) return false;
@@ -922,7 +922,18 @@ private class ScanPackageSearchResults implements Runnable {
    @Override public void run() {
       List<URI> uris = new ArrayList<URI>();
       boolean more = for_repo.getClassesInPackage(package_name,project_id,page_number,uris);
-      if (uris == null || uris.size() == 0) return;
+      if (uris == null || uris.size() == 0) {
+         if (page_number == 0) {
+            more = for_repo.getClassesInPackage(package_name,null,page_number,uris);
+            if (uris !=  null && uris.size() > 1) {
+               
+               // remove irrelevant URIs
+             }
+          }
+       }
+      if (uris == null || uris.size() == 0) {
+         return;
+       }
       
       for (URI u : uris) {
          LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
@@ -1024,7 +1035,7 @@ private class LoadPackageResult implements Runnable {
          IvyLog.logD("COSE","FAILED ADD " + cls + " " + package_name + " TO " + orig_package); 
        }
       
-    }
+       }
    
    
    

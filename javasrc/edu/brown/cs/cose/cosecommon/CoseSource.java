@@ -49,7 +49,7 @@ int getOffset();
 int getLength();
 String getLicenseUid();
 CoseSource getBaseSource();
-boolean isSameRepository(CoseSource src);
+boolean isRelatedRepository(CoseSource src,boolean exact);
 
 }       // end of interface CoseSource
 

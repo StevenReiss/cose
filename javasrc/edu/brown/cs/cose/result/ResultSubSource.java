@@ -113,9 +113,9 @@ ResultSubSource(CoseSource src,int off,int len)
    return base_source.getLicenseUid();
 }
 
-@Override public boolean isSameRepository(CoseSource src)
+@Override public boolean isRelatedRepository(CoseSource src,boolean exact)
 {
-   return base_source.isSameRepository(src);
+   return base_source.isRelatedRepository(src,exact);
 }
 
 

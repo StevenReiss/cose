@@ -124,7 +124,7 @@ protected boolean isRelevantSource(String src)
 
 @Override protected URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,String projectid,int page)
 {
-   if (projectid == null) return null;
+   // if (projectid == null) return null;
    return super.getURIForSearch(keys,lang,projectid,page);
 }
 
