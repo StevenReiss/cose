@@ -783,6 +783,7 @@ private void handleTargetMatch(ASTNode obj)
          handleTargetMethodMatch((CoseSignature.CoseMethodSignature) sgn,(MethodDeclaration) obj);
          break;
       case CLASS :
+      case FILE :
          break;
       case PACKAGE :
          break;

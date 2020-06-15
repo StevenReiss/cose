@@ -60,6 +60,10 @@ void addInnerResult(CoseResult cf);
 void addResource(CoseResource cr);
 Collection<CoseResult> getInnerResults();
 
+default boolean containsText(String text) {
+   return getEditText().contains(text);
+}
+
 Set<String> getRelatedPackages();
 Set<String> getUsedProjects();
 

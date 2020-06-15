@@ -157,11 +157,14 @@ protected boolean isRelevantSource(String src)
       case XML :
 	 langstr = "xml";
 	 break;
+      case OTHER :
+      default :
+         break;
     }
 
    q += "q=";
    int i = 0;
-   for (String s : keys) {
+   for (String s : keys) { 
       s = normalizeKeyword(s);
       if (i++ > 0) q += " ";
       if (s.contains(" ")) q += "\"" + s + "\"";
@@ -170,7 +173,7 @@ protected boolean isRelevantSource(String src)
    if (projectid != null) q += " repo:" + projectid;
 
    try {
-      if (lang != null) q += " language:" + langstr;
+      if (langstr != null) q += " language:" + langstr;
       if (page > 0) q+= "&page=" + (page+1);
       q += "&per_page=" + RESULTS_PER_PAGE;
       URI uri = new URI(GITHUB_SCHEME,"api.github.com","/search/code",q,null);

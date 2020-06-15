@@ -209,6 +209,9 @@ private URI getRepoSearchURI(List<String> keys,CoseSearchLanguage lang)
       case XML :
 	 langstr = "xml";
 	 break;
+      default :
+      case OTHER :
+         break;
     }
    
    q += "q=";
@@ -219,7 +222,7 @@ private URI getRepoSearchURI(List<String> keys,CoseSearchLanguage lang)
       else q += s;
     }
    try {
-      if (lang != null) q += " language:" + langstr;
+      if (langstr != null) q += " language:" + langstr;
       q += "&per_page=100";
       URI uri = new URI(GITHUB_SCHEME,"api.github.com","/search/repositories",q,null);
       return uri;

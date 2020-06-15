@@ -36,6 +36,7 @@
 package edu.brown.cs.cose.result;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -59,7 +60,7 @@ abstract class ResultBase implements CoseResult
 private CoseSource fragment_source;
 private ResultBase parent_fragment;
 private Collection<CoseResource> resource_set;
-private CoseScores result_scores;
+protected CoseScores result_scores;
 
 
 
@@ -113,6 +114,7 @@ protected void setSource(CoseSource src)
    
    ScorerAnalyzer sanal = ScorerAnalyzer.createAnalyzer(req);
    CoseScores scores = sanal.analyzeProperties(this);
+   result_scores = scores;
    return scores;
 }
 
@@ -134,7 +136,7 @@ protected void setSource(CoseSource src)
 
 @Override public Collection<CoseResult> getResults(CoseSearchType t)        
 {
-   return null;
+   return Collections.singleton(this);
 }
 
 
@@ -173,6 +175,7 @@ protected void setSource(CoseSource src)
 {
    return baseCloneResult(diffs);
 }
+
 @Override public boolean isCloned()                             { return false; }
 
 @Override public Object clearStructure()                        { return null; }

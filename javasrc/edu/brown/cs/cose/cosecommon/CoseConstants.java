@@ -44,12 +44,14 @@ enum CoseSearchLanguage {
    JAVA,
    JAVASCRIPT,
    XML,
+   OTHER,
 }
 
 
 enum CoseSearchType {
    METHOD,
    CLASS,
+   FILE,
    PACKAGE,
    ANDROIDUI,
    TESTCLASS,

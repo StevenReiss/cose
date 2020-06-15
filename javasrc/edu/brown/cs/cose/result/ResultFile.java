@@ -76,6 +76,17 @@ protected ResultFile(CoseSource src,String cnts)
 
 @Override public String getText()                       { return file_contents; }
 
+@Override public String getKeyText()                    { return getText(); }
+
+@Override public String getEditText()                   { return getText(); }
+
+@Override public Object getStructure()                  { return null; }
+
+@Override public Object checkStructure()                { return null; }
+
+@Override public Object clearStructure()                { return null; }
+
+
 
 
 }       // end of class ResultFile

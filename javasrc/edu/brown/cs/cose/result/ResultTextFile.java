@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              ResultGroup.java                                                */
+/*              ResultTextFile.java                                             */
 /*                                                                              */
-/*      Result that is a collection of results                                  */
+/*      File-based result for other languages                                   */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -35,24 +35,10 @@
 
 package edu.brown.cs.cose.result;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 
-abstract class ResultGroup extends ResultBase
+class ResultTextFile extends ResultFile
 {
-
-
-/********************************************************************************/
-/*                                                                              */
-/*      Private Storage                                                         */
-/*                                                                              */
-/********************************************************************************/
-
-protected List<CoseResult>      inner_results;
 
 
 
@@ -62,45 +48,17 @@ protected List<CoseResult>      inner_results;
 /*                                                                              */
 /********************************************************************************/
 
-ResultGroup(CoseSource src)
+ResultTextFile(CoseSource src,String cnts)
 {
-   super(src);
-   inner_results = new ArrayList<>();
+   super(src,cnts);
 }
 
 
 
-/********************************************************************************/
-/*                                                                              */
-/*      Access methods                                                          */
-/*                                                                              */
-/********************************************************************************/
-
-@Override public CoseResultType getResultType()     { return CoseResultType.PACKAGE; }
-
-
-@Override synchronized public void addInnerResult(CoseResult cf)
-{
-   inner_results.add(cf);
-}
-
-@Override public Collection<CoseResult> getInnerResults()
-{
-   return inner_results;
-}
-
-
-@Override public boolean containsText(String text) {
-   for (CoseResult cr : inner_results) {
-      if (cr.containsText(text)) return true;
-    }
-   return false;
-}
-
-}       // end of class ResultGroup
+}       // end of class ResultTextFile
 
 
 
 
-/* end of ResultGroup.java */
+/* end of ResultTextFile.java */
 

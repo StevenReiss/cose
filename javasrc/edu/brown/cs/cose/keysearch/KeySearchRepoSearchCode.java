@@ -126,6 +126,9 @@ KeySearchRepoSearchCode(CoseRequest sr)
          break;
       case XML :
 	 break;
+      case OTHER :
+      default :
+         break;
     }
 
    q += "q=";

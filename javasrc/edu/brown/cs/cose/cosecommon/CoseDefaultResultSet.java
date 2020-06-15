@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              ScorerAnalyzer.java                                             */
+/*              CoseDefaultResultset.java                                       */
 /*                                                                              */
-/*      Code to analyze a potential fragment and score it                       */
+/*      description of class                                                    */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -33,60 +33,13 @@
 
 
 
-package edu.brown.cs.cose.scorer;
+package edu.brown.cs.cose.cosecommon;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jdt.core.dom.ASTNode;
-
-import edu.brown.cs.cose.cosecommon.CoseRequest;
-import edu.brown.cs.cose.cosecommon.CoseResult;
-import edu.brown.cs.cose.cosecommon.CoseScores;
-import edu.brown.cs.cose.cosecommon.CoseSignature;
-import edu.brown.cs.cose.cosecommon.CoseRequest.CoseKeywordSet;
-
-abstract public class ScorerAnalyzer implements ScorerConstants
+public class CoseDefaultResultSet implements CoseResultSet, CoseConstants
 {
-
-
-
-/********************************************************************************/
-/*                                                                              */
-/*      Creation methods                                                        */
-/*                                                                              */
-/********************************************************************************/
-
-public static ScorerAnalyzer createAnalyzer(CoseRequest req)
-{
-   switch (req.getLanguage()) {
-      case JAVA :
-         return new ScorerAnalyzerJava(req,null);
-      case JAVASCRIPT :
-      case XML :
-      case OTHER :
-         break;
-    }
-   
-   return null;
-}
-
-
-
-public static ScorerAnalyzer createAnalyzer(CoseRequest req,Object struct)
-{
-   switch (req.getLanguage()) {
-      case JAVA :
-         return new ScorerAnalyzerJava(req,(ASTNode) struct);
-      case JAVASCRIPT :
-      case XML :
-      case OTHER :
-         break;
-    }
-   
-   return null;
-}
-
-
 
 
 /********************************************************************************/
@@ -95,10 +48,7 @@ public static ScorerAnalyzer createAnalyzer(CoseRequest req,Object struct)
 /*                                                                              */
 /********************************************************************************/
 
-private CoseRequest             base_request;
-
-protected CoseScores            value_map;
-
+private List<CoseResult>        all_results;
 
 
 
@@ -108,59 +58,33 @@ protected CoseScores            value_map;
 /*                                                                              */
 /********************************************************************************/
 
-protected ScorerAnalyzer(CoseRequest req)
+public CoseDefaultResultSet()
 {
-   base_request = req;
-   value_map = new CoseScores();
+   all_results = new ArrayList<>();
 }
 
 
 
 /********************************************************************************/
 /*                                                                              */
-/*      Access methods                                                          */
+/*      Basis methods                                                           */
 /*                                                                              */
 /********************************************************************************/
 
-protected CoseSearchType getSearchType()
+@Override public void addResult(CoseResult r)
 {
-   return base_request.getCoseSearchType();
+   all_results.add(r);
 }
 
 
-
-protected List<CoseKeywordSet> getKeywordSets()
-{
-   return base_request.getCoseKeywordSets();
-}
-
-protected List<String> getKeyTerms()
-{
-   return base_request.getKeyTerms();
-}
-
-
-protected CoseSignature getSignature()
-{
-   return base_request.getCoseSignature();
-}
+public List<CoseResult> getResults()            { return all_results; }
 
 
 
-/********************************************************************************/
-/*                                                                              */
-/*      Main analysis entry                                                     */
-/*                                                                              */
-/********************************************************************************/
-
-abstract public CoseScores analyzeProperties(CoseResult cr);
-
-abstract public boolean isTestCase(String src);
-
-}       // end of class ScorerAnalyzer
+}       // end of class CoseDefaultResultset
 
 
 
 
-/* end of ScorerAnalyzer.java */
+/* end of CoseDefaultResultset.java */
 

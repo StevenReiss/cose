@@ -68,6 +68,7 @@ import org.w3c.dom.Element;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseResultSet;
+import edu.brown.cs.cose.cosecommon.CoseDefaultResultSet;
 import edu.brown.cs.cose.cosecommon.CoseMaster;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResource;
@@ -193,8 +194,9 @@ public KeySearchMaster(CoseRequest req)
 /*										*/
 /********************************************************************************/
 
-@Override public void computeSearchResults(CoseResultSet crs)
+@Override public CoseResultSet computeSearchResults(CoseResultSet crs)
 {
+   if (crs == null) crs = new CoseDefaultResultSet();
    result_set = crs;
 
    Iterable<String> spsrc = cose_request.getSpecificSources();
@@ -217,6 +219,8 @@ public KeySearchMaster(CoseRequest req)
     }
 
    thread_pool.waitForAll();
+   
+   return result_set;
 }
 
 
@@ -252,6 +256,8 @@ private boolean getSpecificSolutionFromRepo(KeySearchRepo repo,String src)
 private void analyzeResult(CoseResult cr)
 {
    ScorerAnalyzer scorer = ScorerAnalyzer.createAnalyzer(cose_request);
+   if (scorer == null) return;
+   
    Map<String,Object> props = scorer.analyzeProperties(cr);
    
    if (score_data_file != null) {
@@ -363,6 +369,7 @@ private class ResultBuilder implements Runnable {
          case METHOD :
          case ANDROIDUI :
          case CLASS :
+         case FILE :
             break;
          case PACKAGE :
             ScorerAnalyzer sa = ScorerAnalyzer.createAnalyzer(cose_request);
@@ -376,6 +383,7 @@ private class ResultBuilder implements Runnable {
       switch (cose_request.getCoseSearchType()) {
          case METHOD :
          case CLASS :
+         case FILE :
          case TESTCLASS :
             addSolutions(txt,src);
             break;
@@ -998,7 +1006,7 @@ private class LoadPackageResult implements Runnable {
                IvyLog.logD("COSE","EMPTY CLASS");
                return;
              }
-            boolean fnd = package_result.getEditText().contains(cls);
+            boolean fnd = package_result.containsText(cls);
             IvyLog.logD("COSE","READY TO UPDATE RECHECK FOR " + orig_package);
             updateRecheck(fnd);
             IvyLog.logD("COSE","ADD USED " + cls + " " + fnd + " " + package_name + " " + orig_package);

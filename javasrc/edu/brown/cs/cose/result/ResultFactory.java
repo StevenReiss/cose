@@ -79,6 +79,7 @@ public CoseResult createPackageResult(CoseSource src)
          return new ResultJava.JavaPackageResult(src);
       case JAVASCRIPT :
       case XML :
+      case OTHER :
          break;
     }
    
@@ -94,7 +95,8 @@ public CoseResult createFileResult(CoseSource source,String code)
          return new ResultJava.JavaFileResult(source,code);
       case JAVASCRIPT :
       case XML :
-         break;
+      case OTHER :
+         return new ResultTextFile(source,code);
     }
    
    return null;
@@ -111,6 +113,8 @@ public CoseResult createFragment(CoseResultType typ,CoseSource src,String code)
       case JAVASCRIPT :
          break;
       case XML :
+         break;
+      case OTHER :
          break;
     }
       

@@ -19,7 +19,7 @@ import edu.brown.cs.ivy.file.IvyLog;
 public interface CoseMaster extends CoseConstants
 {
 
-void computeSearchResults(CoseResultSet crs);
+CoseResultSet computeSearchResults(CoseResultSet crs);
 
 
 

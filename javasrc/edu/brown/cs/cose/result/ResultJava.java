@@ -340,6 +340,7 @@ private static class FindVisitor extends ASTVisitor {
          case CLASS :
          case ANDROIDUI :
          case PACKAGE :
+         case FILE :
             break;
          case TESTCLASS :
             is_test = false;
@@ -367,6 +368,7 @@ private static class FindVisitor extends ASTVisitor {
          case CLASS :
          case PACKAGE :
          case ANDROIDUI :
+         case FILE :
             return false;
          case TESTCLASS :
             if (n.getName().getIdentifier().startsWith("test")) is_test = true;
@@ -1012,6 +1014,7 @@ static class JavaPackageResult extends ResultGroup {
          if (bp != null) used_packages.add(bp);
        }
       ast_node = null;
+      result_scores = null;
     }
    
    @Override public Set<String> getRelatedPackages(){ 
