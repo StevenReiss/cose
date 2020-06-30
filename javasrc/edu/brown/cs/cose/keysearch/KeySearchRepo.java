@@ -69,7 +69,6 @@ protected CoseRequest   cose_request;
 
 private static final int MAX_RETRY = 5;
 
-private static boolean do_debug;
 protected static KeySearchCache url_cache = KeySearchCache.getCache();
 
 
@@ -83,8 +82,6 @@ protected static KeySearchCache url_cache = KeySearchCache.getCache();
 protected KeySearchRepo(CoseRequest sr,int max)
 {
    cose_request = sr;
-   do_debug = sr.doDebug();
-
    retry_delay = 20000;
    if (max > 0 && request_sema == null) {
       request_sema = new Semaphore(max);
@@ -423,7 +420,7 @@ static String getString(ByteArrayOutputStream baos)
 protected ByteArrayOutputStream loadURIBinary(URI uri,boolean cache,boolean reread)
 	throws CoseException
 {
-   if (do_debug) IvyLog.logD("COSE","LOAD: " + uri + " " + cache);
+   IvyLog.logD("COSE","LOAD: " + uri + " " + cache);
 
    ByteArrayOutputStream baos = new ByteArrayOutputStream();
 

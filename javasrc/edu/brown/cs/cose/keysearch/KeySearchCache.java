@@ -39,8 +39,10 @@ import edu.brown.cs.ivy.file.IvyFile;
 import edu.brown.cs.ivy.file.IvyLog;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -303,6 +305,10 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
 	 try {
 	    br = getURLStream(u,auth); // throw exception on bad url
 	  }
+         catch (FileNotFoundException e) {
+            byte [] buf = new byte[0];
+            br = new ByteArrayInputStream(buf);
+          }
 	 catch (IOException e) {
 	    dir.delete();
 	    throw e;
@@ -359,7 +365,19 @@ private boolean checkUrlFile(File urlf,URL u)
       br.close();
       if (ln == null) return false;
       ln = ln.trim();
-      if (ln.equalsIgnoreCase(u.toExternalForm())) return true;
+      String s1 = u.toExternalForm();
+      if (ln.equalsIgnoreCase(s1)) return true;
+      if (s1.length() == ln.length()) {
+         s1 = s1.toLowerCase();
+         ln = ln.toLowerCase();
+         boolean match = true;
+         for (int i = 0; match && i < s1.length(); ++i) {
+            if (s1.charAt(i) == ln.charAt(i)) continue;
+            if (s1.charAt(i) >= 256 && ln.charAt(i) == '?') continue;
+            match = false;
+          }
+         if (match) return true;
+       }
     }
    catch (IOException e) {
       IvyLog.logE("COSE","Problem reading URL cache file",e);

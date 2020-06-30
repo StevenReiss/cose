@@ -304,6 +304,7 @@ private class ScanSearchResults implements Runnable {
 
    @Override public void run() {
       int idx = for_repo.getResultsPerPage() * page_number;
+      
       boolean cont = true;
       for (CoseRequest.CoseKeywordSet kws : cose_request.getCoseKeywordSets()) {
          URI uri = for_repo.getURIForSearch(kws.getWords(),cose_request.getLanguage(),null,page_number);
@@ -360,7 +361,7 @@ private class ResultBuilder implements Runnable {
 
    @Override public void run() {
       String txt = for_repo.getSourcePage(initial_uri);
-      if (txt == null) return;
+      if (txt == null || txt.trim().length() == 0) return;
       
       CoseSource src = for_repo.createSource(initial_uri,txt,result_index);
       if (src == null) return;
@@ -478,6 +479,7 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
 
 private boolean addPackageSolution(String code,CoseSource source,CoseSource lclsrc,CoseResult pfrag)
 {
+   if (isTooComplex(pfrag,cose_request)) return false;
    if (!pfrag.getSource().isRelatedRepository(lclsrc,false)) return false;
    if (!checkPackageSolution(code,source,lclsrc)) return false;
    CoseResult rslt = result_factory.createFileResult(source,code);
@@ -928,13 +930,14 @@ private class ScanPackageSearchResults implements Runnable {
     }
 
    @Override public void run() {
+      if (isTooComplex(package_result,cose_request)) return;
       List<URI> uris = new ArrayList<URI>();
+      
       boolean more = for_repo.getClassesInPackage(package_name,project_id,page_number,uris);
       if (uris == null || uris.size() == 0) {
          if (page_number == 0) {
             more = for_repo.getClassesInPackage(package_name,null,page_number,uris);
             if (uris !=  null && uris.size() > 1) {
-               
                // remove irrelevant URIs
              }
           }
@@ -949,7 +952,7 @@ private class ScanPackageSearchResults implements Runnable {
        }
    
       if (page_number < 10 && more) {
-         ++page_number;
+         ++page_number;  
          addSubtask(this,package_queue);
        }
     }
@@ -979,14 +982,18 @@ private class LoadPackageResult implements Runnable {
     }
 
    @Override public void run() {
+      if (isTooComplex(package_result,cose_request)) return;
+      
       String code = for_repo.getSourcePage(page_uri);
       if (code == null) return;
-      
-      CoseSource src = for_repo.createSource(page_uri,code,0);
+      String liccode = code;
+      if (package_result.getInnerResults().size() > 0) liccode = null;
+      CoseSource src = for_repo.createSource(page_uri,liccode,0);
       String pkg = findPackageName(code);
       String cls = findTypeName(code);
       if (!pkg.equals(package_name)) return;
       if (cls == null) return;
+      
       package_result.addPackage(pkg);
       IvyLog.logD("COSE","Check load package result " + pkg + "@" + cls + " FOR " + orig_package);
       IvyLog.logD("COSE","Check type " + cose_request.getCoseScopeType() + " " + " FOR " + orig_package);
@@ -1019,7 +1026,7 @@ private class LoadPackageResult implements Runnable {
       else {
          IvyLog.logD("COSE","SAME PACKAGE ADD "  + cls + " " + package_name + " " + orig_package);
        }
-       
+      
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
          String ext = findExtendsName(code);
          boolean isui = false;
@@ -1043,7 +1050,7 @@ private class LoadPackageResult implements Runnable {
          IvyLog.logD("COSE","FAILED ADD " + cls + " " + package_name + " TO " + orig_package); 
        }
       
-       }
+   }
    
    
    
@@ -1140,13 +1147,17 @@ private class FinishPackageTask implements Runnable {
              }
             lprs = new ArrayList<>(clpr);
           }
+         if (isTooComplex(package_result,cose_request)) break;
          for (LoadPackageResult lpr : lprs) {
             IvyLog.logD("COSE","DO RECHECK OF " + lpr.page_uri + " FOR " + package_result.getBasePackage());
             lpr.run();
           }
        }
       
-      result_set.addResult(package_result);
+      if (isTooComplex(package_result,cose_request)) 
+         result_set.removeResult(package_result);
+      else 
+         result_set.addResult(package_result);
     }
 
 }	// end of inner class FinishPackageTask
@@ -1272,6 +1283,17 @@ static String findExtendsName(String text)
 }
 
 
+static boolean isTooComplex(CoseResult rslt,CoseRequest cr)
+{
+   if (rslt.getInnerResults() != null) {
+      if (rslt.getInnerResults().size() > cr.getMaxPackageFiles()) return true;
+    }
+   if (rslt.getPackages() != null) {
+      if (rslt.getPackages().size() > cr.getMaxPackages()) return true;
+    }
+   
+   return false;
+}
 
 
 /********************************************************************************/

@@ -192,6 +192,7 @@ private class SimpleTestRequest implements CoseRequest, CoseResultSet {
       
    @Override public int getNumberOfThreads()            { return 4; }
    @Override public int getNumberOfResults()            { return 200; }
+   @Override public int getMaxPackageFiles()            { return 100; }
    @Override public CoseSearchType getCoseSearchType()      { return search_type; }
    @Override public CoseScopeType getCoseScopeType()        { return scope_type; }
    @Override public List<CoseKeywordSet> getCoseKeywordSets() {
@@ -208,6 +209,9 @@ private class SimpleTestRequest implements CoseRequest, CoseResultSet {
    
    @Override public synchronized void addResult(CoseResult sr) {
       result_set.add(sr);
+    }
+   @Override public synchronized void removeResult(CoseResult sr) {
+      result_set.remove(sr);
     }
    
 }       // end of inner class SimpleTestRequest  

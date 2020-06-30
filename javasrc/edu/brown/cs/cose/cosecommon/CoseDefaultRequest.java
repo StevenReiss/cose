@@ -58,6 +58,7 @@ private int     num_results;
 private List<CoseDefaultKeywordSet> keyword_sets;
 private Set<String> key_terms;
 private int     num_threads;
+private int     max_files;
 private CoseSearchType search_type;
 private CoseSearchLanguage search_language;
 private CoseSearchEngine search_engine;
@@ -78,6 +79,7 @@ public CoseDefaultRequest()
 {
    do_debug = false;
    num_results = 200;
+   max_files = 100;
    keyword_sets = new ArrayList<>();
    key_terms = new HashSet<>();
    num_threads = 1;
@@ -108,6 +110,9 @@ public void setNumberOfResults(int nr)                  { num_results = nr; }
 
 @Override public int getNumberOfThreads()               { return num_threads; }
 public void setNumberOfThreads(int nt)                  { num_threads = nt; }
+
+@Override public int getMaxPackageFiles()               { return max_files; }
+public void setMaxPackageFiles(int nf)                  { max_files = nf; }
 
 @Override public CoseSearchType getCoseSearchType()     { return search_type; }
 public void setCoseSearchType(CoseSearchType st)        { search_type = st; }

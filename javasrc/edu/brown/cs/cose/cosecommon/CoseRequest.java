@@ -43,6 +43,11 @@ public interface CoseRequest extends CoseConstants
 
 int getNumberOfThreads();
 int getNumberOfResults();
+int getMaxPackageFiles();
+default int getMaxPackages()
+{
+   return getMaxPackageFiles()/10;
+}
 
 CoseSearchType getCoseSearchType();
 CoseScopeType getCoseScopeType();

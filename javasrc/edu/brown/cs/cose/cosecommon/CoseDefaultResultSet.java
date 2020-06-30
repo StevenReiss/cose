@@ -77,6 +77,13 @@ public CoseDefaultResultSet()
 }
 
 
+@Override public void removeResult(CoseResult r)
+{
+   all_results.remove(r);
+}
+
+
+
 public List<CoseResult> getResults()            { return all_results; }
 
 

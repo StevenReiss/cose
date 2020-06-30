@@ -761,6 +761,7 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
          if (xnm.length() < nm.length()) nm = xnm;
        }
     }
+   if (nm == null) return null;
    if (fj.getPackages() != null) {
       for (String s : fj.getPackages()) {
 	 if (s.length() < nm.length())
