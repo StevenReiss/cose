@@ -375,8 +375,10 @@ private class ResultBuilder implements Runnable {
             break;
          case PACKAGE :
             ScorerAnalyzer sa = ScorerAnalyzer.createAnalyzer(cose_request);
-            if (sa.isTestCase(txt)) 
+            if (sa.isTestCase(txt)) {
+               IvyLog.logI("COSE","REMOVE TEST RESULT " + initial_uri);
                return;
+             }
             break;
          case TESTCLASS :
             break;
@@ -456,8 +458,10 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
    
    String pid = source.getProjectId();
    String id = pid + "@" + pkg;
-   if (!repo_pkg_done.add(id)) 
+   if (!repo_pkg_done.add(id)) {
+      IvyLog.logI("COSE","REMOVE DUPLICATE PACKAGE SOLUTION");
       return;
+    }
 
    addPackageSolution(code,source,source,pfrag);
 
