@@ -362,9 +362,10 @@ private class ResultBuilder implements Runnable {
    @Override public void run() {
       String txt = for_repo.getSourcePage(initial_uri);
       if (txt == null || txt.trim().length() == 0) return;
-      
       CoseSource src = for_repo.createSource(initial_uri,txt,result_index);
       if (src == null) return;
+      IvyLog.logI("COSE","CREATE RESULT FOR " + initial_uri);
+      
       CoseResult pfrag = null;
       switch (cose_request.getCoseSearchType()) {
          case METHOD :
