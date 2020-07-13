@@ -43,3 +43,4 @@ javasrc/edu/brown/cs/fait/server/TEST-edu.brown.cs.fait.server.ServerTest.txt
 github.token
 cose.jar
 build.properties
+.DS_Store
