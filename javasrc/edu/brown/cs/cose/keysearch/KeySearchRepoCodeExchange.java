@@ -111,7 +111,7 @@ KeySearchRepoCodeExchange(CoseRequest sr)
 /*										*/
 /********************************************************************************/
 
-@Override URI getURIForSearch(List<String> keywords,CoseSearchLanguage lang,String projectid,int page)
+@Override URI getURIForSearch(List<String> keywords,CoseSearchLanguage lang,String projectid,int page,boolean top)
 {
    StringBuffer buf = new StringBuffer();
    buf.append("q=snippet_code:(");

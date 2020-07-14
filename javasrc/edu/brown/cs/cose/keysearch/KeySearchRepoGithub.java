@@ -143,7 +143,8 @@ protected boolean isRelevantSource(String src)
 }
 
 
-@Override protected URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,String projectid,int page)
+@Override protected URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,
+      String projectid,int page,boolean topsearch)
 {
    String q = "";
    String langstr = null;

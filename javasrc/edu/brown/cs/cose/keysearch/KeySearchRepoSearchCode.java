@@ -113,7 +113,8 @@ KeySearchRepoSearchCode(CoseRequest sr)
 
 
 
-@Override URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,String projectid,int page)
+@Override URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,
+      String projectid,int page,boolean topsearch)
 {
    String q = "";
    String langstr = null;

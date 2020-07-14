@@ -104,6 +104,10 @@ private PrintWriter             score_data_file;
 private FileChannel             score_channel;
 private Set<CoseResult>         do_recheck;
 private Map<CoseResult,Set<LoadPackageResult>> recheck_items;
+private AtomicInteger           base_result_count;
+private AtomicInteger           package_result_count;
+private AtomicInteger           package_output_count;
+private AtomicInteger           package_test_count;
 
 private static final Set<String> RESOURCE_EXTENSIONS;
 
@@ -139,6 +143,10 @@ public KeySearchMaster(CoseRequest req)
    search_repos = new ArrayList<KeySearchRepo>();
    recheck_items = new HashMap<>();
    do_recheck = new ConcurrentHashSet<>();
+   base_result_count = new AtomicInteger();
+   package_result_count = new AtomicInteger();
+   package_output_count = new AtomicInteger();
+   package_test_count = new AtomicInteger();
    
    for (CoseSearchEngine seng : req.getEngines()) {
       KeySearchRepo next = null;
@@ -198,6 +206,11 @@ public KeySearchMaster(CoseRequest req)
 {
    if (crs == null) crs = new CoseDefaultResultSet();
    result_set = crs;
+   
+   long start = System.currentTimeMillis();
+   base_result_count.set(0);
+   package_result_count.set(0);
+   package_output_count.set(0);
 
    Iterable<String> spsrc = cose_request.getSpecificSources();
    if (spsrc != null) {
@@ -220,6 +233,14 @@ public KeySearchMaster(CoseRequest req)
 
    thread_pool.waitForAll();
    
+   if (cose_request.getCoseSearchType() == CoseSearchType.PACKAGE) {
+      IvyLog.logS("COSE","Search Time: " + (System.currentTimeMillis() - start));
+      IvyLog.logS("COSE","Base Results: " + base_result_count.get());
+      IvyLog.logS("COSE","Package Count: " + package_result_count.get());
+      IvyLog.logS("COSE","Final Package: " + package_output_count.get());
+      IvyLog.logS("COSE","Tests Removed: " + package_test_count.get());
+    }
+         
    return result_set;
 }
 
@@ -307,7 +328,7 @@ private class ScanSearchResults implements Runnable {
       
       boolean cont = true;
       for (CoseRequest.CoseKeywordSet kws : cose_request.getCoseKeywordSets()) {
-         URI uri = for_repo.getURIForSearch(kws.getWords(),cose_request.getLanguage(),null,page_number);
+         URI uri = for_repo.getURIForSearch(kws.getWords(),cose_request.getLanguage(),null,page_number,true);
          String txt = null;
          if (uri == null)
             txt = for_repo.getResultPage(kws.getWords(),cose_request.getLanguage(),null,page_number);
@@ -364,7 +385,9 @@ private class ResultBuilder implements Runnable {
       if (txt == null || txt.trim().length() == 0) return;
       CoseSource src = for_repo.createSource(initial_uri,txt,result_index);
       if (src == null) return;
+      
       IvyLog.logI("COSE","CREATE RESULT FOR " + initial_uri);
+      base_result_count.incrementAndGet();
       
       CoseResult pfrag = null;
       switch (cose_request.getCoseSearchType()) {
@@ -377,6 +400,7 @@ private class ResultBuilder implements Runnable {
             ScorerAnalyzer sa = ScorerAnalyzer.createAnalyzer(cose_request);
             if (sa.isTestCase(txt)) {
                IvyLog.logI("COSE","REMOVE TEST RESULT " + initial_uri);
+               package_test_count.incrementAndGet();
                return;
              }
             break;
@@ -393,6 +417,7 @@ private class ResultBuilder implements Runnable {
             break;
          case PACKAGE :
             pfrag = result_factory.createPackageResult(src);
+            package_result_count.incrementAndGet();
             addPackageSolutions(for_repo,pfrag,src,txt);
             break;
          case ANDROIDUI :
@@ -860,7 +885,7 @@ private void findAndroidManifest(KeySearchRepo repo,CoseSource src)
    keys.add("android");
    // should wee add the original class name here?
    // keys.add("schemas.android.com/apk/res/android");
-   URI uri = repo.getURIForSearch(keys,CoseSearchLanguage.XML,src.getProjectId(),0);
+   URI uri = repo.getURIForSearch(keys,CoseSearchLanguage.XML,src.getProjectId(),0,false);
    String rslts = repo.getResultPage(uri);
    List<URI> uris = repo.getSearchPageResults(uri,rslts);
 
@@ -1159,10 +1184,13 @@ private class FinishPackageTask implements Runnable {
           }
        }
       
-      if (isTooComplex(package_result,cose_request)) 
+      if (isTooComplex(package_result,cose_request)) {
          result_set.removeResult(package_result);
-      else 
+       }
+      else {
          result_set.addResult(package_result);
+         package_output_count.incrementAndGet();
+       }
     }
 
 }	// end of inner class FinishPackageTask

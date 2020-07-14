@@ -101,7 +101,7 @@ int getResultsPerPage() 			{ return 10; }
 
 @Override public String getAuthorization()      { return null; }
 
-abstract URI getURIForSearch(List<String> keywords,CoseSearchLanguage lang,String projectid,int page);
+abstract URI getURIForSearch(List<String> keywords,CoseSearchLanguage lang,String projectid,int page,boolean topsearch);
 
 abstract CoseSource createSource(URI uri,String text,int idx);
 
@@ -260,7 +260,7 @@ boolean getClassesInPackage(String pkg,String project,int page,List<URI> rslt)
    IvyLog.logD("COSE","SEARCH FOR PACKAGE " + pkg);
    List<String> keys = new ArrayList<String>();
    keys.add("package " + pkg);
-   URI uri = getURIForSearch(keys,cose_request.getLanguage(),project,page);
+   URI uri = getURIForSearch(keys,cose_request.getLanguage(),project,page,false);
    String rslts = getResultPage(uri);
    if (rslts == null) return false;
    List<URI> uris = getSearchPageResults(uri,rslts);
@@ -277,7 +277,7 @@ KeySearchClassData getPackageClassResult(CoseSource base,String pkg,String cls,i
    List<String> keys = new ArrayList<String>();
    keys.add("package " + pkg);
    keys.add("class " + cls);
-   URI uri = getURIForSearch(keys,cose_request.getLanguage(),base.getProjectId(),page);
+   URI uri = getURIForSearch(keys,cose_request.getLanguage(),base.getProjectId(),page,false);
    String rslts = getResultPage(uri);
    List<URI> uris =  getSearchPageResults(uri,rslts);
    String basepath = base.getPathName();

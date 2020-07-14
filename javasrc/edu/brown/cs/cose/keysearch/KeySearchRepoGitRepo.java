@@ -122,10 +122,11 @@ protected boolean isRelevantSource(String src)
 /*                                                                              */
 /********************************************************************************/
 
-@Override protected URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,String projectid,int page)
+@Override protected URI getURIForSearch(List<String> keys,CoseSearchLanguage lang,String projectid,
+      int page,boolean topsearch)
 {
-   // if (projectid == null) return null;
-   return super.getURIForSearch(keys,lang,projectid,page);
+   if (topsearch) return null;
+   return super.getURIForSearch(keys,lang,projectid,page,topsearch);
 }
 
 
@@ -149,7 +150,7 @@ protected boolean isRelevantSource(String src)
       else skeys.add(normalizeKeyword(s)); 
     }
    
-   URI u1 = super.getURIForSearch(skeys,lang,repo,0);
+   URI u1 = super.getURIForSearch(skeys,lang,repo,0,true);
    String txt = getResultPage(u1);   
 
    return txt;
@@ -223,7 +224,7 @@ private URI getRepoSearchURI(List<String> keys,CoseSearchLanguage lang)
     }
    try {
       if (langstr != null) q += " language:" + langstr;
-      q += "&per_page=100";
+      q += "&per_page=500";
       URI uri = new URI(GITHUB_SCHEME,"api.github.com","/search/repositories",q,null);
       return uri;
     }

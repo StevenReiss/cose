@@ -49,6 +49,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.MessageDigest;
@@ -306,6 +307,10 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
 	    br = getURLStream(u,auth); // throw exception on bad url
 	  }
          catch (FileNotFoundException e) {
+            byte [] buf = new byte[0];
+            br = new ByteArrayInputStream(buf);
+          }
+         catch (SocketTimeoutException e) {
             byte [] buf = new byte[0];
             br = new ByteArrayInputStream(buf);
           }
