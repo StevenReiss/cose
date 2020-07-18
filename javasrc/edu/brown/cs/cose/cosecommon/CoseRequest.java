@@ -46,7 +46,7 @@ int getNumberOfResults();
 int getMaxPackageFiles();
 default int getMaxPackages()
 {
-   return getMaxPackageFiles()/10;
+   return getMaxPackageFiles()/4;
 }
 
 CoseSearchType getCoseSearchType();

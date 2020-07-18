@@ -470,10 +470,11 @@ private static class FileSorter {
                chng = true;
              }
           }
-         if (!chng) {
+         if (!chng && fst != null) {
             rslt.add(fst);
             done.add(fst);
           }
+         else if (!chng && fst == null) break;
        }
       return rslt;
     }
@@ -1007,6 +1008,7 @@ static class JavaPackageResult extends ResultGroup {
     }
    
    @Override public synchronized void addInnerResult(CoseResult sf) {
+      if (sf == null) return;
       super.addInnerResult(sf);
       CompilationUnit cu = (CompilationUnit) sf.getStructure();
       JcompAst.setKeep(cu,false);

@@ -49,6 +49,7 @@ public class CoseDefaultResultSet implements CoseResultSet, CoseConstants
 /********************************************************************************/
 
 private List<CoseResult>        all_results;
+private int                     num_removed;
 
 
 
@@ -61,6 +62,7 @@ private List<CoseResult>        all_results;
 public CoseDefaultResultSet()
 {
    all_results = new ArrayList<>();
+   num_removed = 0;
 }
 
 
@@ -80,11 +82,13 @@ public CoseDefaultResultSet()
 @Override public void removeResult(CoseResult r)
 {
    all_results.remove(r);
+   ++num_removed;
 }
 
 
 
 public List<CoseResult> getResults()            { return all_results; }
+public int getNumberRemoved()                   { return num_removed; }
 
 
 

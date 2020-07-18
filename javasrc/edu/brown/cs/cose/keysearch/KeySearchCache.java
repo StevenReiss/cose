@@ -234,7 +234,7 @@ private InputStream getURLStream(URL url,KeySearchAuthorizer auth) throws IOExce
 {
    IvyLog.logD("COSE","GET " + url);
    URLConnection uc = url.openConnection();
-   uc.setReadTimeout(15000);
+   uc.setReadTimeout(60000);
    uc.setRequestProperty("User-Agent","s6");
    if (auth != null) {
       String auths = auth.getAuthorization();
