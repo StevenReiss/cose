@@ -125,7 +125,7 @@ public BufferedReader getReader(URL url,KeySearchAuthorizer auth,boolean cache,b
       return getURLReader(url,auth);
     }
 
-   File dir = getDirectory(url,auth,reread);
+   File dir = getDirectory(url,auth,reread,false);
    if (dir != null) {
       File df = new File(dir,CACHE_DATA_FILE);
       return new BufferedReader(new FileReader(df));
@@ -152,7 +152,7 @@ public InputStream getInputStream(URL url,KeySearchAuthorizer auth,boolean cache
       return getURLStream(url,auth);
     }
 
-   File dir = getDirectory(url,auth,reread);
+   File dir = getDirectory(url,auth,reread,false);
    if (dir != null) {
       File df = new File(dir,CACHE_DATA_FILE);
       return new FileInputStream(df);
@@ -164,7 +164,7 @@ public InputStream getInputStream(URL url,KeySearchAuthorizer auth,boolean cache
 
 public InputStream getCacheStream(URL url,KeySearchAuthorizer auth,long dlm) throws IOException
 {
-   File dir = getDirectory(url,auth,false);
+   File dir = getDirectory(url,auth,false,false);
    if (dir != null) {
       File df = new File(dir,CACHE_DATA_FILE);
       long ddlm = df.lastModified();
@@ -178,7 +178,7 @@ public InputStream getCacheStream(URL url,KeySearchAuthorizer auth,long dlm) thr
 
 public boolean checkIfForced(URL url) throws IOException
 {
-   File dir = getDirectory(url,null,false);
+   File dir = getDirectory(url,null,false,false);
    if (dir == null) return false;
    File f1 = new File(dir,CACHE_URL_FILE);
    try {
@@ -197,7 +197,7 @@ public boolean checkIfForced(URL url) throws IOException
 
 public void markForced(URL url) throws IOException
 {
-   File dir = getDirectory(url,null,false);
+   File dir = getDirectory(url,null,false,false);
    if (dir == null) return;
 
    File f1 = new File(dir,CACHE_URL_FILE);
@@ -212,6 +212,30 @@ public void markForced(URL url) throws IOException
    IvyLog.logI("COSE","Mark Forced " + dir + " FOR " + url);
 }
 
+
+
+public void setCacheContents(URL url,String cnts)
+{
+   if (cnts == null) cnts = "\n";
+   try {
+      File dir = getDirectory(url,null,false,true);
+      if (dir == null) return;
+      
+      File urlf = new File(dir,CACHE_URL_FILE); 
+      FileWriter fw = new FileWriter(urlf);
+      fw.write(url.toExternalForm() + "\n");
+      fw.close();
+      
+      IvyFile.updatePermissions(dir,0777);
+      File dataf = new File(dir,CACHE_DATA_FILE); 
+      FileWriter dw = new FileWriter(dataf);
+      dw.write(cnts);
+      dw.close();
+    }
+   catch (IOException e) {
+      IvyLog.logE("Problem setting cache contents: " + e);
+    }
+}
 
 
 
@@ -254,7 +278,8 @@ private InputStream getURLStream(URL url,KeySearchAuthorizer auth) throws IOExce
 /*										*/
 /********************************************************************************/
 
-private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws IOException
+private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread,boolean dironly) 
+        throws IOException
 {
    if (u == null) return null;
 
@@ -300,8 +325,9 @@ private File getDirectory(URL u,KeySearchAuthorizer auth,boolean reread) throws 
 	       && dataf.lastModified() < System.currentTimeMillis() - CACHE_TIME_OUT) {
 	 fg = true;
        }
-
+      
       if (fg) { // we own the directory
+         if (dironly) return dir;
 	 InputStream br = null;
 	 try {
 	    br = getURLStream(u,auth); // throw exception on bad url
