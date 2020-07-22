@@ -257,7 +257,7 @@ List<URI> getDirectoryContentsURIs(URI baseuri,CoseSource src,Element jsoup)
 
 boolean getClassesInPackage(String pkg,String project,int page,List<URI> rslt)
 {
-   IvyLog.logD("COSE","SEARCH FOR PACKAGE " + pkg);
+   IvyLog.logD("COSE","SEARCH FOR PACKAGE " + pkg + " (" + page + ")");
    List<String> keys = new ArrayList<String>();
    keys.add("package " + pkg);
    URI uri = getURIForSearch(keys,cose_request.getLanguage(),project,page,false);

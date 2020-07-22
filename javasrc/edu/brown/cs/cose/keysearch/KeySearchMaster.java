@@ -943,6 +943,7 @@ private class ScanPackageSearchResults implements Runnable {
    private KeySearchRepo for_repo;
    private String package_name;
    private String project_id;
+   private String use_project;
    private CoseSource package_source;
    private CoseResult package_result;
    private int page_number;
@@ -952,6 +953,7 @@ private class ScanPackageSearchResults implements Runnable {
          CoseResult pkgfrag,KeySearchQueue pkgq) {
       for_repo = repo;
       project_id = pkgsrc.getProjectId();
+      use_project = project_id;
       package_name = pkg;
       package_result = pkgfrag;
       package_source = pkgsrc;
@@ -961,27 +963,34 @@ private class ScanPackageSearchResults implements Runnable {
 
    @Override public void run() {
       if (isTooComplex(package_result,cose_request)) return;
-      List<URI> uris = new ArrayList<URI>();
+      List<URI> uris = new ArrayList<>();
       
-      boolean more = for_repo.getClassesInPackage(package_name,project_id,page_number,uris);
+      boolean more = for_repo.getClassesInPackage(package_name,use_project,page_number,uris);
       if (uris == null || uris.size() == 0) {
          if (page_number == 0) {
             more = for_repo.getClassesInPackage(package_name,null,page_number,uris);
-            if (uris !=  null && uris.size() > 1) {
-               // remove irrelevant URIs
-             }
+            if (uris != null && uris.size() > 1) use_project = null;
           }
        }
-      if (uris == null || uris.size() == 0) {
-         return;
+      if (use_project == null && uris != null) {
+         int idx1 = project_id.indexOf("/");
+         if (idx1 > 0) {
+            String pfx = project_id.substring(0,idx1+1);
+            List<URI> rslt = new ArrayList<>();
+            for (URI u : uris) {
+               if (u.toString().contains(pfx)) rslt.add(u);
+             }
+            uris = rslt;
+          }
        }
+      if (uris == null) return;
       
       for (URI u : uris) {
          LoadPackageResult lrp = new LoadPackageResult(for_repo,u,package_name,package_result,package_source);
          addSubtask(lrp,package_queue);
        }
    
-      if (page_number < 10 && more) {
+      if (page_number < 20 && more) {
          ++page_number;  
          addSubtask(this,package_queue);
        }
@@ -1013,7 +1022,6 @@ private class LoadPackageResult implements Runnable {
 
    @Override public void run() {
       if (isTooComplex(package_result,cose_request)) return;
-      
       String code = for_repo.getSourcePage(page_uri);
       if (code == null) return;
       String liccode = code;

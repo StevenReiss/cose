@@ -558,6 +558,9 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
    for (Object nimp : nn.imports()) {
       ImportDeclaration id = (ImportDeclaration) nimp;
       if (importFromPackage(id,pkgs)) continue;
+      if (id.toString().contains("Command")) 
+         System.err.println("CHECK HERE");
+      
       String nfq = getImportRename(id,pnm,pkgs);
       if (nfq != null && imps.contains(nfq)) continue;
       String fq = id.getName().getFullyQualifiedName();
@@ -776,6 +779,8 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
          ImportDeclaration id = (ImportDeclaration) o;
          if (id.isStatic()) continue;
          String inm = id.getName().getFullyQualifiedName();
+         if (inm.contains("CommandProcess")) 
+            System.err.println("CHECK HERE");
          if (id.isStatic()) {
             if (!id.isOnDemand()) {
                int idx = inm.lastIndexOf(".");
@@ -1011,6 +1016,8 @@ static class JavaPackageResult extends ResultGroup {
       if (sf == null) return;
       super.addInnerResult(sf);
       CompilationUnit cu = (CompilationUnit) sf.getStructure();
+      if (cu.toString().contains("CommandPro"))
+         System.err.println("CHECK HERE");
       JcompAst.setKeep(cu,false);
       if (base_package == null) {
          String bp = getBasePackage();

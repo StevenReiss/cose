@@ -274,6 +274,22 @@ List<URI> getSearchPageResults(Element jsoup)
 {
    if (cnts == null) return false;
    if (cnts.startsWith("{")) {
+      if (cnts.contains("class=\"next_page\"")) return true;
+      try {
+         int tot = 0;
+         JSONArray jarr = null;
+         JSONObject jobj = new JSONObject(cnts);
+         if (jobj.getBoolean("incomplete_results")) return true;
+         tot = jobj.getInt("total_count");
+         jarr = jobj.getJSONArray("items");
+         int num = page * RESULTS_PER_PAGE + jarr.length();
+         if (num >= tot) return false;
+         return true;
+       }
+      catch (JSONException e) {
+         IvyLog.logE("COSE","Problem parsing github json return",e);
+       }
+      
       return cnts.contains("\"incomplete_results\":true");
     }
    return cnts.contains("class=\"next_page\"");
