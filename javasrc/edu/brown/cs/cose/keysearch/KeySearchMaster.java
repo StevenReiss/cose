@@ -1186,9 +1186,14 @@ private class FinishPackageTask implements Runnable {
             lprs = new ArrayList<>(clpr);
           }
          if (isTooComplex(package_result,cose_request)) break;
-         for (LoadPackageResult lpr : lprs) {
-            IvyLog.logD("COSE","DO RECHECK OF " + lpr.page_uri + " FOR " + package_result.getBasePackage());
-            lpr.run();
+         if (!lprs.isEmpty()) {
+            for (LoadPackageResult lpr : lprs) {
+               IvyLog.logD("COSE","DO RECHECK OF " + lpr.page_uri + " FOR " + 
+                     package_result.getBasePackage());
+               lpr.run();
+             }
+            addTask(this);
+            return;
           }
        }
       

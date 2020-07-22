@@ -532,7 +532,7 @@ private static class FileSorter {
 
 @SuppressWarnings("unchecked")
 private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit nn,
-      Set<String> pkgs)
+      Set<String> pkgs,Set<String> clsset)
 {
    String pnm = null;
    PackageDeclaration pd = rn.getPackage();
@@ -544,9 +544,9 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
    // go over existing imports and remove unneeded ones, renaming others
    for (Iterator<?> it = rn.imports().iterator(); it.hasNext(); ) {
       ImportDeclaration id = (ImportDeclaration) it.next();
-      if (importFromPackage(id,pkgs)) it.remove();
+      if (importFromPackage(id,pkgs,clsset)) it.remove();
       else {
-	 String fq = getImportRename(id,pnm,pkgs);
+	 String fq = getImportRename(id,pnm,pkgs,clsset);
 	 if (fq == null) fq = id.getName().getFullyQualifiedName();
          if (fq == null) continue;
 	 imps.add(fq);
@@ -557,11 +557,8 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
    
    for (Object nimp : nn.imports()) {
       ImportDeclaration id = (ImportDeclaration) nimp;
-      if (importFromPackage(id,pkgs)) continue;
-      if (id.toString().contains("Command")) 
-         System.err.println("CHECK HERE");
-      
-      String nfq = getImportRename(id,pnm,pkgs);
+      if (importFromPackage(id,pkgs,clsset)) continue;
+      String nfq = getImportRename(id,pnm,pkgs,clsset);
       if (nfq != null && imps.contains(nfq)) continue;
       String fq = id.getName().getFullyQualifiedName();
       if (imps.contains(fq)) continue;
@@ -690,20 +687,24 @@ private static class NameChecker extends ASTVisitor {
 
 
 
-private static boolean importFromPackage(ImportDeclaration id,Set<String> pkgs)
+private static boolean importFromPackage(ImportDeclaration id,
+      Set<String> pkgs,Set<String> clss)
 {
-   if (id.isStatic()) return false;
+   // determine if an import should be ignored in a merge
    
-   for (String pkg : pkgs) {
-      String fq = id.getName().getFullyQualifiedName();
-      if (id.isOnDemand() && pkg.equals(fq)) return true;
-      if (!fq.startsWith(pkg)) continue;
-      int idx = pkg.length();
-      if (fq.length() <= idx+2) continue;
-      if (fq.charAt(idx) != '.') continue;
-      String rnm = fq.substring(idx+1);
-      int idx1 = rnm.indexOf(".");
-      if (idx1 < 0 && !id.isOnDemand()) return true;
+   String fq = id.getName().getFullyQualifiedName();
+ 
+   if (id.isStatic()) return false;
+   if (id.isOnDemand()) {
+      if (pkgs.contains(fq)) 
+         return true;
+    }
+   else {
+      int idx = fq.lastIndexOf(".");
+      String p = fq.substring(0,idx);
+      if (pkgs.contains(p)) 
+         return true;
+      // might want to check if clss contains fq.substring(idx+1) as well
     }
    
    return false;
@@ -711,26 +712,26 @@ private static boolean importFromPackage(ImportDeclaration id,Set<String> pkgs)
 
 
 
-private static String getImportRename(ImportDeclaration id,String pnm,Set<String> pkgs)
+private static String getImportRename(ImportDeclaration id,String pnm,
+      Set<String> pkgs,Set<String> clss)
 {
-   String bnm = null;
-   for (String pkg : pkgs) {
-      // if (pkg.equals(pnm)) continue;
-      String fq = id.getName().getFullyQualifiedName();
-      if (id.isOnDemand()) continue;
-      if (!fq.startsWith(pkg)) continue;
-      int idx = pkg.length();
-      if (fq.length() <= idx+2) continue;
-      if (fq.charAt(idx) != '.') continue;
-      String rnm = fq.substring(idx+1);
-      // if (!Character.isUpperCase(rnm.charAt(0))) continue;
-      if (bnm == null || bnm.length() > rnm.length()) bnm = rnm;
+   // This should change imports of inner classes and statics 
+   // It assumes that imports that can be ignored have been eliminated
+   
+   String fq = id.getName().getFullyQualifiedName();
+   int idx = fq.length();
+   for ( ; ; ) {
+      int idx1 = fq.lastIndexOf(".",idx-1);
+      if (idx1 < 0) break;
+      String p = fq.substring(0,idx1);
+      String c = fq.substring(idx1+1);
+      if (pkgs.contains(p) && clss.contains(c)) {
+         return pnm + "." + c;
+       }
+      idx = idx1;
     }
    
-   if (bnm == null) return null;
-   if (pnm == null) return bnm;
-   
-   return pnm + "." + bnm;
+   return null;
 }
 
 
@@ -777,10 +778,7 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
       CompilationUnit cu = (CompilationUnit) cr.getStructure();
       for (Object o : cu.imports()) {
          ImportDeclaration id = (ImportDeclaration) o;
-         if (id.isStatic()) continue;
          String inm = id.getName().getFullyQualifiedName();
-         if (inm.contains("CommandProcess")) 
-            System.err.println("CHECK HERE");
          if (id.isStatic()) {
             if (!id.isOnDemand()) {
                int idx = inm.lastIndexOf(".");
@@ -1016,8 +1014,6 @@ static class JavaPackageResult extends ResultGroup {
       if (sf == null) return;
       super.addInnerResult(sf);
       CompilationUnit cu = (CompilationUnit) sf.getStructure();
-      if (cu.toString().contains("CommandPro"))
-         System.err.println("CHECK HERE");
       JcompAst.setKeep(cu,false);
       if (base_package == null) {
          String bp = getBasePackage();
@@ -1045,6 +1041,14 @@ static class JavaPackageResult extends ResultGroup {
       FileSorter fs = new FileSorter(inner_results);
       inner_results = fs.sort();
       CompilationUnit root = null;
+      Set<String> clsset = new HashSet<>();
+      for (CoseResult ff : inner_results) {
+         CompilationUnit fn = (CompilationUnit) ff.getStructure();
+         for (Object o : fn.types()) {
+            AbstractTypeDeclaration atd = (AbstractTypeDeclaration) o;
+            addClasses(atd,clsset,"");
+          }
+       }
       
       for (CoseResult ff : inner_results) {
          CompilationUnit fn = (CompilationUnit) ff.getStructure();
@@ -1052,7 +1056,7 @@ static class JavaPackageResult extends ResultGroup {
             AST nast = JcompAst.createNewAst();
             root = (CompilationUnit) ASTNode.copySubtree(nast,fn);
           }
-         else root = mergeIntoAst(root,fn,used_packages);
+         else root = mergeIntoAst(root,fn,used_packages,clsset);
        }
       if (used_packages.size() == 0) {
          PackageDeclaration pd = root.getPackage();
@@ -1066,6 +1070,19 @@ static class JavaPackageResult extends ResultGroup {
       source_text = root.toString();
       root = JcompAst.parseSourceFile(source_text);
       ast_node = root;
+    }
+   
+   private void addClasses(AbstractTypeDeclaration atd,Set<String> clsset,String pfx) {
+      String nm = atd.getName().getIdentifier();
+      String nnm = pfx + nm;
+      clsset.add(nnm);
+      String newpfx = nnm + ".";
+      for (Object o : atd.bodyDeclarations()) {
+         if (o instanceof AbstractTypeDeclaration) {
+            AbstractTypeDeclaration subatd = (AbstractTypeDeclaration) o;
+            addClasses(subatd,clsset,newpfx);
+          }
+       }
     }
    
 }       // end of inner class JavaPackageResult

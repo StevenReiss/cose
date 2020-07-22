@@ -104,11 +104,17 @@ String SCORE_DATA_FILE = "/ws/volfred/s6/scores.data";
 /*                                                                              */
 /********************************************************************************/
 
-static String [] PREFIX_PATHS = { "org", "com", "edu", "sun", "java", "oracle" };
+static String [] PREFIX_PATHS = { "org", "com", "edu", "sun", "java", "oracle", "google" };
 
 public static boolean isRelatedPackage(String p1,String p2)
 {
    if (p1 == null || p2 == null) return false;
+   if (p1.startsWith("com.google.")) {
+      p1 = p1.substring(11);
+    }
+   if (p2.startsWith("com.google.")) {
+      p2 = p2.substring(11);
+    }
    if (p1.equals(p2)) return true;
    if (p1.startsWith(p2)) return true;
    else if (p2.startsWith(p1)) return true;
@@ -146,6 +152,7 @@ public static boolean isRelatedPackage(String p1,String p2)
    
    return true;
 }
+
 
 
 static String [] JAVA_PATHS = new String[] {
