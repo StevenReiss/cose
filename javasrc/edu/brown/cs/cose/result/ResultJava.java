@@ -53,7 +53,6 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.Annotation;
-import org.eclipse.jdt.core.dom.ChildPropertyDescriptor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.MarkerAnnotation;
@@ -64,7 +63,6 @@ import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.SimpleType;
-import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.rewrite.ASTRewrite;
@@ -661,7 +659,7 @@ private static class FileSorter {
       if (t.isSimpleType()) {
          SimpleType st = (SimpleType) t;
          String tnm = st.getName().getFullyQualifiedName();
-         if (pkg != null && tnm.startsWith(pkg)) tnm = tnm.substring(pkg.length() + 1);
+         if (pkg != null && tnm.equals(pkg)) return;        if (pkg != null && tnm.startsWith(pkg)) tnm = tnm.substring(pkg.length() + 1);
          int idx = tnm.indexOf(".");
          if (idx >= 0) tnm = tnm.substring(0,idx);
          CoseResult frm = class_names.get(tnm);
@@ -820,32 +818,18 @@ private static class NameChecker extends ASTVisitor {
       return false;
     }
    
-   @SuppressWarnings("unchecked")
    @Override public boolean visit(SimpleType n) {
       JcompType jt = JcompAst.getJavaType(n);
       if (jt != null) {
          String nm = jt.getName();
          if (name_checks.contains(nm)) {
             Name qn = JcompAst.getQualifiedName(n.getAST(),nm);
-            ASTNode par = n.getParent();
-            StructuralPropertyDescriptor spd = n.getLocationInParent();
-            if (spd.isChildProperty()) {
-               Class<?> c = ((ChildPropertyDescriptor) spd).getChildType();
-               if (c != SimpleType.class) {
-                  par.setStructuralProperty(spd,qn);
-                }
-             }
-            else if (spd.isChildListProperty()) {
-               List<Object> l = (List<Object>) par.getStructuralProperty(spd);
-               int idx = l.indexOf(n);
-               if (idx >= 0) l.set(idx,qn);
-             }
-          }
+              n.setStructuralProperty(SimpleType.NAME_PROPERTY,qn);         }
        }
       return true;
     }
-   
-}	// end of inner class NameChecker
+}       
+   	// end of inner class NameChecker
 
 
 
