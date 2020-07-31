@@ -53,7 +53,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -62,7 +61,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.*;
 
 import org.w3c.dom.Element;
 
@@ -478,7 +476,8 @@ void addPackageSolutions(KeySearchRepo repo,CoseResult pfrag,CoseSource source,S
       return;
     }
 
-   String pkg = findPackageName(code);
+   Object fnd = pfrag.getFindStructure(code);
+   String pkg = pfrag.findPackageName(code,fnd);
    if (pkg == null || pkg.equals("")) return;
    
    String pid = source.getProjectId();
@@ -511,7 +510,7 @@ private boolean addPackageSolution(String code,CoseSource source,CoseSource lcls
 {
    if (isTooComplex(pfrag,cose_request)) return false;
    if (!pfrag.getSource().isRelatedRepository(lclsrc,false)) return false;
-   if (!checkPackageSolution(code,source,lclsrc)) return false;
+   if (!checkPackageSolution(pfrag,code,source,lclsrc)) return false;
    CoseResult rslt = result_factory.createFileResult(source,code);
    if (rslt == null) return false;
 
@@ -521,10 +520,11 @@ private boolean addPackageSolution(String code,CoseSource source,CoseSource lcls
 }
 
 
-private boolean checkPackageSolution(String code,CoseSource source,CoseSource lclsrc)
+private boolean checkPackageSolution(CoseResult pfrag,String code,CoseSource source,CoseSource lclsrc)
 {
-   String pkg = findPackageName(code);
-   String cnm = findClassName(code);
+   Object str = pfrag.getFindStructure(code);
+   String pkg = pfrag.findPackageName(code,str);
+   String cnm = pfrag.findClassName(code,str);
    if (cnm != null && cnm.length() == 0) cnm = null;
   
    synchronized (package_items) {
@@ -845,7 +845,7 @@ private class AndroidClassLoader implements Runnable {
     }
 
    @Override public void run() {
-      KeySearchClassData kcd = for_repo.getPackageClassResult(manifest_source,
+      KeySearchClassData kcd = for_repo.getPackageClassResult(package_result,manifest_source,
             package_name,class_name,page_number);
    
       if (kcd != null && kcd.getURI() != null) {
@@ -1027,9 +1027,10 @@ private class LoadPackageResult implements Runnable {
       String liccode = code;
       if (package_result.getInnerResults().size() > 0) liccode = null;
       CoseSource src = for_repo.createSource(page_uri,liccode,0);
-      String pkg = findPackageName(code);
-      String cls = findTypeName(code);
+      Object str = package_result.getFindStructure(code);
+      String pkg = package_result.findPackageName(code,str);
       if (!pkg.equals(package_name)) return;
+      String cls = package_result.findTypeName(code,str);
       if (cls == null) return;
       
       package_result.addPackage(pkg);
@@ -1038,7 +1039,7 @@ private class LoadPackageResult implements Runnable {
       if (orig_package != null && !pkg.equals(orig_package)) {
          // handle code from other packages
          if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_IFACE) {
-            String ifc = findInterfaceName(code);
+            String ifc = package_result.findInterfaceName(code,str);
             if (ifc == null || ifc.equals("")) return;
             boolean fnd = package_result.getEditText().contains(ifc);
             updateRecheck(fnd);
@@ -1066,7 +1067,7 @@ private class LoadPackageResult implements Runnable {
        }
       
       if (cose_request.getCoseScopeType() == CoseScopeType.PACKAGE_UI) {
-         String ext = findExtendsName(code);
+         String ext = package_result.findExtendsName(code,str);
          boolean isui = false;
          if (ext != null) {
             if (ext.equals("Result") || ext.equals("Fragment") || ext.equals("Activity")) {
@@ -1247,86 +1248,22 @@ private boolean checkIfDone(KeySearchQueue queue)
 
 
 
-/********************************************************************************/
-/*										*/
-/*	Common methods for getting source information				*/
-/*										*/
-/********************************************************************************/
-
-static String findPackageName(String text)
-{
-   if (text == null) return null;
-   String pats = "^\\s*package\\s+([A-Za-z_0-9]+(\\s*\\.\\s*[A-Za-z_0-9]+)*)\\s*\\;";
-   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
-   Matcher mat = pat.matcher(text);
-   if (!mat.find()) return "";
-
-   String pkg = mat.group(1);
-   StringTokenizer tok = new StringTokenizer(pkg,". \t\n\f");
-   StringBuffer buf = new StringBuffer();
-   int ctr = 0;
-   while (tok.hasMoreTokens()) {
-      String elt = tok.nextToken();
-      if (ctr++ > 0) buf.append(".");
-      buf.append(elt);
-    }
-   return buf.toString();
-}
 
 
 
-static String findClassName(String text)
-{
-   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s*(\\w+)";
-   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
-   Matcher mat = pat.matcher(text);
-   if (!mat.find()) return "";
-   String cls = mat.group(3);
-   return cls;
-}
-
-
-static String findTypeName(String text)
-{
-   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)";
-   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
-   Matcher mat = pat.matcher(text);
-   if (!mat.find()) return null;
-   String cls = mat.group(4);
-   return cls;
-}
 
 
 
-static String findInterfaceName(String text)
-{
-   String pats = "\\s*((public)\\s+)*interface\\s+(\\w+)";
-   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
-   Matcher mat = pat.matcher(text);
-   if (!mat.find()) return null;
-   String cls = mat.group(3);
-   
-   String patcs = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)";
-   Pattern patc = Pattern.compile(patcs,Pattern.MULTILINE);
-   Matcher matc = patc.matcher(text);
-   if (matc.find()) {
-      if (matc.start() < mat.start()) return null;
-    }
-   
-   return cls;
-}
 
 
 
-static String findExtendsName(String text)
-{
-   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)\\s+extends\\s+(\\w+)";
-   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
-   Matcher mat = pat.matcher(text);
-   if (!mat.find()) return null;
-   String cls = mat.group(4);
-   return cls;
-}
+
+
+
+
+
+
+
 
 
 static boolean isTooComplex(CoseResult rslt,CoseRequest cr)

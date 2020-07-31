@@ -39,6 +39,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseScores;
@@ -205,6 +207,49 @@ protected Object getDeltaStructure(ResultDelta rd)
 
 
 
+/********************************************************************************/
+/*                                                                              */
+/*      Name finding methods                                                    */
+/*                                                                              */
+/********************************************************************************/
+
+@Override public Object getFindStructure(String code)           { return null; }
+   
+
+@Override public String findPackageName(String text,Object str)
+{
+   return null;
+}
+
+
+@Override public String findTypeName(String text,Object str)
+{
+   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(text);
+   if (!mat.find()) return null;
+   String cls = mat.group(4);
+   return cls;
+}
+   
+
+
+@Override public String findInterfaceName(String text,Object str)
+{
+   return null;
+}
+
+
+@Override public String findClassName(String text,Object str)
+{
+   return null;
+}
+
+
+@Override public String findExtendsName(String text,Object str)
+{
+   return null;
+}
 
 }       // end of class ResultBase
 

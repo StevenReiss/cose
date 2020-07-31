@@ -47,6 +47,7 @@ import org.jsoup.nodes.*;
 
 import edu.brown.cs.cose.cosecommon.CoseException;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
+import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.ivy.file.IvyLog;
 
@@ -272,7 +273,7 @@ boolean getClassesInPackage(String pkg,String project,int page,List<URI> rslt)
 
 
 
-KeySearchClassData getPackageClassResult(CoseSource base,String pkg,String cls,int page)
+KeySearchClassData getPackageClassResult(CoseResult prslt,CoseSource base,String pkg,String cls,int page)
 {
    List<String> keys = new ArrayList<String>();
    keys.add("package " + pkg);
@@ -293,9 +294,10 @@ KeySearchClassData getPackageClassResult(CoseSource base,String pkg,String cls,i
    for (URI u : uris) {
       String code = getSourcePage(u);
       CoseSource nsrc = createSource(u,code,0);
-      String npkg = KeySearchMaster.findPackageName(code);
+      Object fstr = prslt.getFindStructure(code);
+      String npkg = prslt.findPackageName(code,fstr);
       if (npkg == null || !npkg.equals(pkg)) continue;
-      String ncls = KeySearchMaster.findClassName(code);
+      String ncls = prslt.findClassName(code,fstr);
       if (ncls == null || !ncls.equals(cls)) continue;
       String path = nsrc.getPathName();
       if (useClass(basepath,path,bestpath)) {

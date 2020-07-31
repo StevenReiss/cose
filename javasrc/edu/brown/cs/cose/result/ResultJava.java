@@ -44,6 +44,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
@@ -93,6 +96,7 @@ static {
    check_names.add("java.awt.List");
    check_names.add("javax.swing.filechooser.FileFilter");
    check_names.add("java.sql.Date");
+   check_names.add("javax.swing.Timer");
 }
 
 
@@ -183,6 +187,158 @@ static ASTNode getDeltaJavaStructure(ResultDelta rd)
 
 /********************************************************************************/
 /*                                                                              */
+/*      Find methods                                                            */
+/*                                                                              */
+/********************************************************************************/
+
+private static Object getJavaFindStructure(String code)
+{
+   if (code == null) return null;
+   CompilationUnit cu = JcompAst.parseSourceFile(code);
+   return cu;
+}
+
+
+private static String findJavaPackageName(String code,Object str)
+{
+   if (code == null) return null;
+   
+   if (str != null && str instanceof CompilationUnit) {
+      CompilationUnit cu = (CompilationUnit) str;
+      PackageDeclaration pd = cu.getPackage();
+      if (pd != null) return pd.getName().getFullyQualifiedName();
+    }
+   
+   String pats = "^\\s*package\\s+([A-Za-z_0-9]+(\\s*\\.\\s*[A-Za-z_0-9]+)*)\\s*\\;";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(code);
+   if (!mat.find()) return "";
+   
+   String pkg = mat.group(1);
+   StringTokenizer tok = new StringTokenizer(pkg,". \t\n\f");
+   StringBuffer buf = new StringBuffer();
+   int ctr = 0;
+   while (tok.hasMoreTokens()) {
+      String elt = tok.nextToken();
+      if (ctr++ > 0) buf.append(".");
+      buf.append(elt);
+    }
+   return buf.toString();   
+}
+
+
+private static String findJavaTypeName(String code,Object str)
+{
+   if (code == null) return null;
+   
+   if (str != null && str instanceof CompilationUnit) {
+      CompilationUnit cu = (CompilationUnit) str;
+      for (Object o : cu.types()) {
+         AbstractTypeDeclaration atd = (AbstractTypeDeclaration) o;
+         return atd.getName().getIdentifier();
+       }
+    }
+
+   String pats = "\\s*((public|abstract)\\s+)*(class|interface|enum)\\s+(\\w+)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(code);
+   if (!mat.find()) return null; 
+   String cls = mat.group(4);
+   return cls;
+}
+
+
+private static String findJavaInterfaceName(String code,Object str)
+{
+   if (code == null) return null;
+   
+   if (str != null && str instanceof CompilationUnit) {
+      CompilationUnit cu = (CompilationUnit) str;
+      for (Object o : cu.types()) {
+         if (o instanceof TypeDeclaration) {
+            TypeDeclaration td = (TypeDeclaration) o;
+            if (!td.isInterface()) return null;
+            return td.getName().getIdentifier();
+          }
+         else return null;
+       }
+    }
+   
+   String pats = "\\s*((public)\\s+)*interface\\s+(\\w+)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(code);
+   if (!mat.find()) return null;
+   String cls = mat.group(3);
+   
+   String patcs = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)";
+   Pattern patc = Pattern.compile(patcs,Pattern.MULTILINE);
+   Matcher matc = patc.matcher(code);
+   if (matc.find()) {
+      if (matc.start() < mat.start()) return null;
+    }
+   
+   return cls;
+}
+
+
+
+private static String findJavaClassName(String code,Object str)
+{
+   if (code == null) return null;
+   
+   if (str != null && str instanceof CompilationUnit) {
+      CompilationUnit cu = (CompilationUnit) str;
+      for (Object o : cu.types()) {
+         if (o instanceof TypeDeclaration) {
+            TypeDeclaration td = (TypeDeclaration) o;
+            if (td.isInterface()) return null;
+            return td.getName().getIdentifier();
+          }
+         else return null;
+       }
+    }
+   
+   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s*(\\w+)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(code);
+   if (!mat.find()) return "";
+   String cls = mat.group(3);
+   return cls;
+}
+
+
+
+private static String findJavaExtendsName(String code,Object str)
+{
+   if (code == null) return null;
+   
+   if (str != null && str instanceof CompilationUnit) {
+      CompilationUnit cu = (CompilationUnit) str;
+      for (Object o : cu.types()) {
+         if (o instanceof TypeDeclaration) {
+            TypeDeclaration td = (TypeDeclaration) o;
+            if (td.isInterface()) return null;
+            Type t = td.getSuperclassType();
+            if (t == null) return null;
+            return t.toString();
+          }
+         else return null;
+       }
+    }
+   
+   String pats = "\\s*((public|private|abstract|static)\\s+)*class\\s+(\\w+)\\s+extends\\s+(\\w+)";
+   Pattern pat = Pattern.compile(pats,Pattern.MULTILINE);
+   Matcher mat = pat.matcher(code);
+   if (!mat.find()) return null;
+   String cls = mat.group(4);
+   return cls;
+}
+ 
+
+
+
+/********************************************************************************/
+/*                                                                              */
 /*      Delta representation                                                    */
 /*                                                                              */
 /********************************************************************************/
@@ -226,7 +382,7 @@ private static class JavaDelta extends ResultDelta {
    @Override Object getDeltaStructure() {
       return getDeltaJavaStructure(this);
     }
-    
+   
 }       // end of inner class JavaDelta
 
 
@@ -547,7 +703,12 @@ private static CompilationUnit mergeIntoAst(CompilationUnit rn,CompilationUnit n
       if (importFromPackage(id,pkgs,clsset)) it.remove();
       else {
 	 String fq = getImportRename(id,pnm,pkgs,clsset);
-	 if (fq == null) fq = id.getName().getFullyQualifiedName();
+         String cfq = id.getName().getFullyQualifiedName();
+         if (fq != null && !fq.equals(cfq)) {
+            Name nnm = JcompAst.getQualifiedName(rn.getAST(),fq);
+            id.setName(nnm);
+          }
+	 if (fq == null) fq = cfq;
          if (fq == null) continue;
 	 imps.add(fq);
        }
@@ -627,6 +788,9 @@ private static void fixNameConflicts(CompilationUnit orig,CompilationUnit add)
    
    NameChecker nc = new NameChecker(checks);
    add.accept(nc);
+   
+   // also need to add explicit imports for these elements is they have on-demand
+   // imports but nothing explicit.
 }
 
 
@@ -701,6 +865,7 @@ private static boolean importFromPackage(ImportDeclaration id,
     }
    else {
       int idx = fq.lastIndexOf(".");
+      if (idx < 0) return true;
       String p = fq.substring(0,idx);
       if (pkgs.contains(p)) 
          return true;
@@ -787,6 +952,11 @@ public static Set<String> getRelatedJavaProjects(CoseResult fj)
                if (idx1 < 0) continue;
                inm = inm.substring(0,idx1);
              }
+            else {
+               int idx = inm.lastIndexOf(".");
+               if (idx < 0) continue;
+               inm = inm.substring(0,idx);
+             }
           }
          else if (!id.isOnDemand()) {
             int idx = inm.lastIndexOf(".");
@@ -863,6 +1033,24 @@ static class JavaFileResult extends ResultFile {
       return cloneJavaResult(this,o,data);
     }
    
+   @Override public Object getFindStructure(String code) {
+      return getJavaFindStructure(code);
+    }
+   @Override public String findPackageName(String code,Object str) {
+      return findJavaPackageName(code,str);
+    }
+   @Override public String findTypeName(String code,Object str) {
+      return findJavaTypeName(code,str);
+    }
+   @Override public String findInterfaceName(String code,Object str) {
+      return findJavaInterfaceName(code,str);
+    }
+   @Override public String findClassName(String code,Object str) {
+      return findJavaClassName(code,str);
+    }
+   @Override public String findExtendsName(String code,Object str) {
+      return findJavaExtendsName(code,str);
+    }  
    
 }       // end of inner class JavaFileResult
 
@@ -1033,6 +1221,25 @@ static class JavaPackageResult extends ResultGroup {
    @Override public CoseResult cloneResult(Object o,Object data) {
       return cloneJavaResult(this,o,data);
     }
+   
+   @Override public Object getFindStructure(String code) {
+      return getJavaFindStructure(code);
+    }
+   @Override public String findPackageName(String code,Object str) {
+      return findJavaPackageName(code,str);
+    }
+   @Override public String findTypeName(String code,Object str) {
+      return findJavaTypeName(code,str);
+    }
+   @Override public String findInterfaceName(String code,Object str) {
+      return findJavaInterfaceName(code,str);
+    }
+   @Override public String findClassName(String code,Object str) {
+      return findJavaClassName(code,str);
+    }
+   @Override public String findExtendsName(String code,Object str) {
+      return findJavaExtendsName(code,str);
+    }  
    
    private synchronized void buildRoot() {
       if (ast_node != null) return;

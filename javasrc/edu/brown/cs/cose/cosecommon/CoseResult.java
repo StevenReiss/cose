@@ -60,6 +60,14 @@ void addInnerResult(CoseResult cf);
 void addResource(CoseResource cr);
 Collection<CoseResult> getInnerResults();
 
+Object getFindStructure(String code);
+String findPackageName(String code,Object str);
+String findTypeName(String code,Object str);
+String findInterfaceName(String code,Object str);
+String findClassName(String code,Object str);
+String findExtendsName(String code,Object str);
+
+
 default boolean containsText(String text) {
    return getEditText().contains(text);
 }
