@@ -828,7 +828,7 @@ private static class NameChecker extends ASTVisitor {
        }
       return true;
     }
-}       
+      }       
    	// end of inner class NameChecker
 
 
