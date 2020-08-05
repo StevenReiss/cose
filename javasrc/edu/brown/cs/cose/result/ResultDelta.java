@@ -329,7 +329,7 @@ private static class DiffStruct {
 
 @Override public String toString()
 {
-   return diff_list.toString();
+   return String.valueOf(diff_list);
 }
 
 
