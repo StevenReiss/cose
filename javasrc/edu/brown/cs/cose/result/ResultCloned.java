@@ -35,6 +35,9 @@
 
 package edu.brown.cs.cose.result;
 
+import java.util.Collection;
+
+import edu.brown.cs.cose.cosecommon.CoseResource;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 
 class ResultCloned extends ResultBase
@@ -85,6 +88,27 @@ ResultCloned(ResultBase base,ResultDelta delta)
 }
 
 
+@Override public Collection<CoseResult> getResults(CoseSearchType st)
+{
+   return getParent().getResults(st);
+}
+
+@Override public Collection<CoseResource> getResources()
+{
+   return getParent().getResources();
+}
+
+@Override public String getBasePackage()
+{
+   return getParent().getBasePackage();
+}
+
+@Override public Collection<String> getPackages()
+{
+   return getParent().getPackages();
+}
+
+
 
 /********************************************************************************/
 /*                                                                              */
@@ -131,7 +155,6 @@ ResultCloned(ResultBase base,ResultDelta delta)
    
    return super.cloneResult(o,data);
 }
-
 
 
 

@@ -1166,7 +1166,9 @@ static class JavaPackageResult extends ResultGroup {
    @Override public String getBasePackage() {
       if (base_package == null) {
          if (inner_results.isEmpty()) return null;
-         CompilationUnit cu = (CompilationUnit) inner_results.get(0).getStructure();
+         CompilationUnit cu = null;
+         if (isCloned()) cu = (CompilationUnit) getStructure();
+         else cu = (CompilationUnit) inner_results.get(0).getStructure();
          PackageDeclaration pd = cu.getPackage();
          if (pd != null) {
             base_package = pd.getName().getFullyQualifiedName();

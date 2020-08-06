@@ -66,6 +66,7 @@ private CoseScopeType scope_type;
 private CoseSignature search_signature;
 private Set<String> specific_sources;
 private CoseResultEditor result_editor;
+private String  project_id;
 
 
 
@@ -90,6 +91,7 @@ public CoseDefaultRequest()
    search_signature = null;
    specific_sources = null;
    result_editor = CoseMaster.createJavaEditor();
+   project_id = null;
 }
 
 
@@ -143,6 +145,9 @@ public void setCoseScopeType(CoseScopeType st)          { scope_type = st; }
 
 @Override public CoseSignature getCoseSignature()       { return search_signature; }
 public void setCoseSignature(CoseSignature cs)          { search_signature = cs; }
+
+@Override public String getProjectId()                  { return project_id; }
+public void setProjectId(String s)                      { project_id = s; }
 
 @Override public List<String> getKeyTerms()            
  { 

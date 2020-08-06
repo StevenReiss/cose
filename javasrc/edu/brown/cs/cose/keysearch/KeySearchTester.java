@@ -206,6 +206,7 @@ private class SimpleTestRequest implements CoseRequest, CoseResultSet {
    @Override public CoseSignature getCoseSignature()    { return null; }
    @Override public List<String> getKeyTerms()          { return new ArrayList<>(); }
    @Override public String editSource(String orig)      { return orig; }
+   @Override public String getProjectId()               { return null; }
    
    @Override public synchronized void addResult(CoseResult sr) {
       result_set.add(sr);

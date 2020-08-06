@@ -58,6 +58,7 @@ Set<String> getSpecificSources();
 CoseSignature getCoseSignature();
 List<String> getKeyTerms();
 String editSource(String orig);
+String getProjectId();
 
 boolean useAndroid();  
 

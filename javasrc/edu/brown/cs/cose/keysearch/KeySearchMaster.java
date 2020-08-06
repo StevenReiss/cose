@@ -326,10 +326,10 @@ private class ScanSearchResults implements Runnable {
       
       boolean cont = true;
       for (CoseRequest.CoseKeywordSet kws : cose_request.getCoseKeywordSets()) {
-         URI uri = for_repo.getURIForSearch(kws.getWords(),cose_request.getLanguage(),null,page_number,true);
+         URI uri = for_repo.getURIForSearch(kws.getWords(),cose_request.getLanguage(),cose_request.getProjectId(),page_number,true);
          String txt = null;
          if (uri == null)
-            txt = for_repo.getResultPage(kws.getWords(),cose_request.getLanguage(),null,page_number);
+            txt = for_repo.getResultPage(kws.getWords(),cose_request.getLanguage(),cose_request.getProjectId(),page_number);
          else
             txt = for_repo.getResultPage(uri);
          if (txt == null) continue;
