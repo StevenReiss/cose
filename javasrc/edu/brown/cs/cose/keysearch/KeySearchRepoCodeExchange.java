@@ -173,12 +173,12 @@ KeySearchRepoCodeExchange(CoseRequest sr)
 
 @Override List<URI> getSearchPageResults(URI uri,String cnts)
 {
-   ArrayList<URI> rslt = new ArrayList<URI>();
+   ArrayList<URI> rslt = new ArrayList<>();
 
    Element root = IvyXml.convertStringToXml(cnts);
    Element relt = IvyXml.getChild(root,"result");
    for (Element delt : IvyXml.children(relt,"doc")) {
-      Map<String,String> vals = new HashMap<String,String>();
+      Map<String,String> vals = new HashMap<>();
       for (Element selt : IvyXml.children(delt,"str")) {
 	 String id = IvyXml.getAttrString(selt,"name");
 	 String val = IvyXml.getText(selt);
