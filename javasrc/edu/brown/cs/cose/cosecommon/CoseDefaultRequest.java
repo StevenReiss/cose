@@ -38,7 +38,6 @@ package edu.brown.cs.cose.cosecommon;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,12 +60,12 @@ private int     num_threads;
 private int     max_files;
 private CoseSearchType search_type;
 private CoseSearchLanguage search_language;
-private CoseSearchEngine search_engine;
 private CoseScopeType scope_type;
 private CoseSignature search_signature;
 private Set<String> specific_sources;
 private CoseResultEditor result_editor;
 private String  project_id;
+private Set<CoseSearchEngine> search_engines;
 
 
 
@@ -87,7 +86,8 @@ public CoseDefaultRequest()
    search_type = CoseSearchType.METHOD;
    scope_type = CoseScopeType.FILE;
    search_language = CoseSearchLanguage.JAVA;
-   search_engine = CoseSearchEngine.SEARCHCODE;
+   search_engines = new HashSet<>();
+   search_engines.add(CoseSearchEngine.SEARCHCODE);
    search_signature = null;
    specific_sources = null;
    result_editor = CoseMaster.createJavaEditor();
@@ -136,9 +136,18 @@ public void addSpecificSource(String src)
 
 @Override public Set<CoseSearchEngine> getEngines()
 {
-   return Collections.singleton(search_engine);
+   return search_engines;
 }
-public void setSearchEngine(CoseSearchEngine se)        { search_engine = se; }
+public void setSearchEngine(CoseSearchEngine se)   
+{
+   search_engines.clear();
+   search_engines.add(se);
+}
+public void addSearchEngine(CoseSearchEngine se)   
+{
+}
+
+
 
 @Override public CoseScopeType getCoseScopeType()       { return scope_type; }
 public void setCoseScopeType(CoseScopeType st)          { scope_type = st; }
