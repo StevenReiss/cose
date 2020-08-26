@@ -48,6 +48,7 @@ import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResource;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.cose.scorer.ScorerAnalyzer;
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
 
 abstract class ResultBase implements CoseResult
 {
@@ -250,6 +251,67 @@ protected Object getDeltaStructure(ResultDelta rd)
 {
    return null;
 }
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Output methods                                                          */
+/*                                                                              */
+/********************************************************************************/
+
+@Override public void outputXml(IvyXmlWriter xw) 
+{
+   xw.begin("RESULT");
+   
+   xw.field("RESULTTYPE",getResultType());
+   
+   localOutputXml(xw);
+   
+   if (fragment_source != null) {
+      outputSource(fragment_source,xw);
+    }
+   if (parent_fragment != null) {
+      xw.begin("PARENT");
+      parent_fragment.outputXml(xw);
+      xw.end("PARENT");
+    }
+   if (resource_set != null) {
+      for (CoseResource cr : resource_set) {
+         xw.begin("RESOURCE");
+         xw.text(cr.toString());
+         xw.end("RESOURCE");
+       }
+    }
+   
+   xw.end("RESULT");
+}
+
+
+private void outputSource(CoseSource src,IvyXmlWriter xw) 
+{
+   if (src == null) return;
+   
+   xw.begin("SOURCE");
+   xw.field("NAME",src.getName());
+   xw.field("DISPLAY",src.getDisplayName());
+   xw.field("PATH",src.getPathName());
+   xw.field("LENGTH",src.getLength());
+   xw.field("OFFSET",src.getOffset());
+   xw.field("LICENSE",src.getLicenseUid());
+   xw.field("PROJECT",src.getProjectId());
+   xw.field("SCORE",src.getScore());
+   if (src.getBaseSource() != null) {
+      xw.begin("BASE");
+      outputSource(src.getBaseSource(),xw);
+      xw.end("BASE");
+    }
+   xw.end("SOURCE");
+}
+
+
+abstract protected void localOutputXml(IvyXmlWriter xw);
+
+
 
 }       // end of class ResultBase
 

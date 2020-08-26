@@ -81,7 +81,7 @@ public CoseDefaultResultSet()
 
 @Override public void removeResult(CoseResult r)
 {
-   all_results.remove(r);
+   if (r != null) all_results.remove(r);
    ++num_removed;
 }
 

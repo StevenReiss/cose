@@ -42,9 +42,10 @@ import java.net.Socket;
 
 import org.w3c.dom.Element;
 
+import edu.brown.cs.cose.cosecommon.CoseDefaultResultSet;
 import edu.brown.cs.cose.cosecommon.CoseMaster;
-import edu.brown.cs.cose.cosecommon.CoseRequest;
-import edu.brown.cs.cose.cosecommon.CoseResultSet;
+import edu.brown.cs.cose.cosecommon.CoseResult;
+import edu.brown.cs.cose.cosecommon.CoseConstants.CoseSearchType;
 import edu.brown.cs.ivy.xml.IvyXml;
 import edu.brown.cs.ivy.xml.IvyXmlReaderThread;
 import edu.brown.cs.ivy.xml.IvyXmlWriter;
@@ -158,9 +159,17 @@ private boolean handleCommand(Element xml,IvyXmlWriter xw)
          break;
       case "SEARCH" :
          Element rqelt = IvyXml.getChild(xml,"REQUEST");
-         CoseRequest cr = new RemoteRequest(rqelt);
+         RemoteRequest cr = new RemoteRequest(rqelt);
+         switch (cr.getCoseSearchType()) {
+            case CLASS :
+            case TESTCLASS :
+            case METHOD :
+               cr.setCoseSearchType(CoseSearchType.FILE);
+               break;
+          }
          CoseMaster cm = CoseMaster.createMaster(cr);
-         CoseResultSet rset = cm.computeSearchResults(null);
+         CoseDefaultResultSet rset = new CoseDefaultResultSet();
+         rset = (CoseDefaultResultSet) cm.computeSearchResults(rset);
          outputResults(rset,xw);
          break;
       case "EXIT" :
@@ -173,9 +182,15 @@ private boolean handleCommand(Element xml,IvyXmlWriter xw)
 }
 
 
-private void outputResults(CoseResultSet rset,IvyXmlWriter xw)
+private void outputResults(CoseDefaultResultSet rset,IvyXmlWriter xw)
 {
-   
+   xw.begin("RESULTS");
+   xw.field("COUNT",rset.getResults().size());
+   xw.field("REMOVED",rset.getNumberRemoved());
+   for (CoseResult cr : rset.getResults()) {
+      cr.outputXml(xw);
+    }
+   xw.end("RESULTS");
 }
 
 

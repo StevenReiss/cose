@@ -20,7 +20,6 @@ public interface CoseResultSet extends CoseConstants
 void addResult(CoseResult cr);
 void removeResult(CoseResult cr);
 
-
 }       // end of interface CoseResultSet
 
 

@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*                                                                              */
-/*              ResultCloned.java                                               */
+/*              RemoteSource.java                                               */
 /*                                                                              */
-/*      Result derived from editing another result                              */
+/*      Source from a remote server                                             */
 /*                                                                              */
 /********************************************************************************/
 /*      Copyright 2013 Brown University -- Steven P. Reiss                    */
@@ -33,15 +33,17 @@
 
 
 
-package edu.brown.cs.cose.result;
+package edu.brown.cs.cose.remote;
 
-import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
-import edu.brown.cs.cose.cosecommon.CoseResource;
-import edu.brown.cs.cose.cosecommon.CoseResult;
-import edu.brown.cs.ivy.xml.IvyXmlWriter;
+import org.w3c.dom.Element;
 
-class ResultCloned extends ResultBase
+import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.xml.IvyXml;
+
+public class RemoteSource implements CoseSource, RemoteConstants
 {
 
 
@@ -51,8 +53,17 @@ class ResultCloned extends ResultBase
 /*                                                                              */
 /********************************************************************************/
 
-private ResultDelta     result_delta;
-private Object          structure_data;
+private String  source_name;
+private String  display_name;
+private String  source_path;
+private int     source_length;
+private int     source_offset;
+private String  source_license;
+private String  source_project;
+private CoseSource base_source;
+private double  source_score;
+
+static private Map<String,RemoteSource> known_sources = new HashMap<>();
 
 
 
@@ -62,120 +73,106 @@ private Object          structure_data;
 /*                                                                              */
 /********************************************************************************/
 
-ResultCloned(ResultBase base,ResultDelta delta)
+public static synchronized RemoteSource createSource(Element xml)
 {
-   super(base,base.getSource());
-   result_delta = delta;
-   structure_data = null;
-}
-
-
-
-/********************************************************************************/
-/*                                                                              */
-/*      Access methods                                                          */
-/*                                                                              */
-/********************************************************************************/
-
-@Override public String getKeyText()
-{
-   return result_delta.getKeyText();
-}
-
-
-@Override public CoseResultType getResultType()
-{
-   return getParent().getResultType();
-}
-
-
-@Override public Collection<CoseResult> getResults(CoseSearchType st)
-{
-   return getParent().getResults(st);
-}
-
-@Override public Collection<CoseResource> getResources()
-{
-   return getParent().getResources();
-}
-
-@Override public String getBasePackage()
-{
-   return getParent().getBasePackage();
-}
-
-@Override public Collection<String> getPackages()
-{
-   return getParent().getPackages();
-}
-
-
-
-/********************************************************************************/
-/*                                                                              */
-/*      Methods to apply and use the delta                                      */
-/*                                                                              */
-/********************************************************************************/
-
-@Override public Object getStructure()
-{
-   if (structure_data == null) {
-      structure_data = getParent().getDeltaStructure(result_delta);
-    }
-   return structure_data;
-}
-
-@Override public Object checkStructure()
-{
-   return structure_data;
-}
-
-@Override public Object clearStructure()
-{
-   Object rslt = structure_data;
-   structure_data = null;
-   return rslt;
-}
-
-@Override public String getText()
-{
-   return result_delta.getText();
-}
-
-@Override public String getEditText()
-{
-   return result_delta.getEditText();
-}
-
-@Override public boolean isCloned()             { return true; }
-
-@Override public CoseResult cloneResult(Object o,Object data)
-{
-   CoseResult cr = result_delta.cloneResult(this,o,data);
-   if (cr != null) return cr;
+   if (xml == null) return null; 
    
-   return super.cloneResult(o,data);
+   String nm = IvyXml.getAttrString(xml,"DISPLAY");
+   RemoteSource rs = known_sources.get(nm);
+   if (rs == null) {
+      rs = new RemoteSource(xml);
+      known_sources.put(nm,rs);
+    }
+   
+   return rs;
 }
 
 
-/********************************************************************************/
-/*                                                                              */
-/*      Output methods                                                          */
-/*                                                                              */
-/********************************************************************************/
 
-@Override protected void localOutputXml(IvyXmlWriter xw) 
+private RemoteSource(Element xml)
 {
-   xw.field("TYPE","CLONED");
-   xw.cdataElement("TEXT",getText());
+   source_name = IvyXml.getAttrString(xml,"NAME");
+   display_name = IvyXml.getAttrString(xml,"DISPLAY");
+   source_path = IvyXml.getAttrString(xml,"PATH");
+   source_length = IvyXml.getAttrInt(xml,"LENGTH");
+   source_offset = IvyXml.getAttrInt(xml,"OFFSET");
+   source_license = IvyXml.getAttrString(xml,"LICENSE");
+   source_project = IvyXml.getAttrString(xml,"PROJECT");
+   source_score = IvyXml.getAttrDouble(xml,"SCORE");
+   base_source = null;
+   Element base = IvyXml.getChild(xml,"BASE");
+   if (base != null) {
+      base_source = createSource(IvyXml.getChild(base,"SOURCE"));
+    }
 }
 
 
 
-}       // end of class ResultCloned
+/********************************************************************************/
+/*                                                                              */
+/*      Abstract Method Implementations                                         */
+/*                                                                              */
+/********************************************************************************/
+
+@Override public double getScore()
+{
+   return source_score;
+}
+
+
+@Override public String getPathName()
+{
+   return source_path;
+}
+
+
+@Override public String getProjectId()
+{
+   return source_project;
+}
+
+
+@Override public int getOffset()
+{
+   return source_offset;
+}
+
+
+@Override public int getLength()
+{
+   return source_length;
+}
+
+
+@Override public String getLicenseUid()
+{
+   return source_license;
+}
+
+
+@Override public CoseSource getBaseSource()
+{
+   return base_source;
+}
+
+
+@Override public String getName()
+{
+   return source_name;
+}
+
+
+@Override public String getDisplayName()
+{
+   return display_name;
+}
+
+
+
+}       // end of class RemoteSource
 
 
 
 
-/* end of ResultCloned.java */
+/* end of RemoteSource.java */
 

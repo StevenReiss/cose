@@ -36,8 +36,13 @@
 package edu.brown.cs.cose.result;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
+
+import org.w3c.dom.Element;
+
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.cose.remote.RemoteSource;
+import edu.brown.cs.ivy.xml.IvyXml;
 
 
 public class ResultFactory implements ResultConstants
@@ -104,23 +109,42 @@ public CoseResult createFileResult(CoseSource source,String code)
 
 
 
-
-public CoseResult createFragment(CoseResultType typ,CoseSource src,String code)
+public CoseResult createResult(Element xml)
 {
-   switch (for_request.getLanguage()) {
-      case JAVA :
-         break;
-      case JAVASCRIPT :
-         break;
-      case XML :
-         break;
-      case OTHER :
-         break;
+   if (xml == null) return null;
+   if (!IvyXml.isElement(xml,"RESULT")) {
+      xml = IvyXml.getChild(xml,"RESULT");
+      if (xml == null) return null;
     }
-      
+   
+   Element srcxml = IvyXml.getChild(xml,"SOURCE");
+   CoseSource src = RemoteSource.createSource(srcxml);
+   CoseResultType rtype = IvyXml.getAttrEnum(xml,"RESULTTYPE",CoseResultType.FILE);
+   String ftyp = IvyXml.getAttrString(xml,"TYPE");
+   if (ftyp.equals("CLONED")) {
+      // create cloned result
+      return null;
+    }
+   else {
+      switch (rtype) {
+         case FILE :
+            String cnts = IvyXml.getTextElement(xml,"CONTENTS");
+            return createFileResult(src,cnts); 
+         case PACKAGE :
+            CoseResult prslt = createPackageResult(src);
+            for (Element innerxml : IvyXml.children(xml,"INNER")) {
+               CoseResult inner = createResult(innerxml);
+               if (inner != null) prslt.addInnerResult(inner);
+             }
+            return prslt;
+         case METHOD :
+         case CLASS :
+            break;
+       }
+    }
+   
    return null;
 }
-
 
 
 }       // end of class ResultFactory

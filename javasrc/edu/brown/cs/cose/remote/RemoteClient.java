@@ -39,11 +39,16 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Collection;
 
 import org.w3c.dom.Element;
 
+import edu.brown.cs.cose.cosecommon.CoseDefaultResultSet;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
+import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseResultSet;
+import edu.brown.cs.cose.result.ResultFactory;
+import edu.brown.cs.ivy.exec.IvyExec;
 import edu.brown.cs.ivy.xml.IvyXml;
 import edu.brown.cs.ivy.xml.IvyXmlReader;
 import edu.brown.cs.ivy.xml.IvyXmlWriter;
@@ -72,10 +77,9 @@ private PrintWriter     remote_writer;
 
 public RemoteClient() throws IOException
 { 
-   remote_conn = new Socket(COSE_REMOTE_HOST,COSE_REMOTE_PORT);
-   remote_reader = new IvyXmlReader(remote_conn.getInputStream());
-   remote_writer = new PrintWriter(new OutputStreamWriter(remote_conn.getOutputStream()));
-   
+   remote_conn = null;
+   remote_reader = null;
+   remote_writer = null;
 }
 
 
@@ -89,6 +93,8 @@ public RemoteClient() throws IOException
 
 public CoseResultSet computeSearchResults(CoseRequest cr,CoseResultSet crs)
 {
+   if (crs == null) crs = new CoseDefaultResultSet();
+   
    IvyXmlWriter xw = new IvyXmlWriter();
    xw.begin("COSE");
    xw.field("COMMAND","SEARCH");
@@ -97,13 +103,19 @@ public CoseResultSet computeSearchResults(CoseRequest cr,CoseResultSet crs)
    Element rslt = sendMessage(xw.toString());
    xw.close();
    if (rslt == null) return null;
-   // create result set from results
+   
+   if (IvyXml.isElement(rslt,"RESULTS")) {
+      setupResults(cr,crs,rslt);
+    }
+   
    return crs;
 }
 
 
 @Override public void close()
 {
+   if (remote_conn == null) return;
+   
    IvyXmlWriter xw = new IvyXmlWriter();
    xw.begin("COSE");
    xw.field("COMMAND","EXIT");
@@ -116,12 +128,55 @@ public CoseResultSet computeSearchResults(CoseRequest cr,CoseResultSet crs)
 
 /********************************************************************************/
 /*                                                                              */
+/*      Setup result set                                                        */
+/*                                                                              */
+/********************************************************************************/
+
+private void setupResults(CoseRequest req,CoseResultSet crs,Element rslts)
+{
+   ResultFactory rf = new ResultFactory(req);
+   for (Element r : IvyXml.children(rslts,"RESULT")) {
+      CoseResult cr = rf.createResult(r);
+      if (cr == null) continue;
+      switch (req.getCoseSearchType()) {
+         case CLASS :
+         case TESTCLASS :
+         case METHOD :
+            Collection<CoseResult> inner = cr.getResults(req.getCoseSearchType());
+            if (inner != null) {
+               for (CoseResult c : inner) {
+                  crs.addResult(c);
+                }
+             }
+            break;
+         case FILE :
+         case ANDROIDUI :
+         case PACKAGE :
+            crs.addResult(cr);
+            break;
+       }
+    }
+   if (crs instanceof CoseDefaultResultSet) {
+      CoseDefaultResultSet cdrs = (CoseDefaultResultSet) crs;
+      for (int i = 0; i < IvyXml.getAttrInt(rslts,"REMOVED"); ++i) {
+         cdrs.removeResult(null);
+       }
+    }
+}
+
+
+
+
+/********************************************************************************/
+/*                                                                              */
 /*      Send message and recieve result                                         */
 /*                                                                              */
 /********************************************************************************/
 
 private Element sendMessage(String msg)
 {
+   checkRunning();
+   
    try {
       remote_writer.println(msg);
       String xmls = remote_reader.readXml();
@@ -131,6 +186,40 @@ private Element sendMessage(String msg)
    catch (IOException e) {
       return null;
     }
+}
+
+
+
+/********************************************************************************/
+/*                                                                              */
+/*      Methods to start server                                                 */
+/*                                                                              */
+/********************************************************************************/
+
+private void checkRunning()
+{
+   if (remote_conn != null) return;
+   
+   for (int i = 0; i < 10; ++i) {
+      try {
+         remote_conn = new Socket(COSE_REMOTE_HOST,COSE_REMOTE_PORT);
+         remote_reader = new IvyXmlReader(remote_conn.getInputStream());
+         remote_writer = new PrintWriter(new OutputStreamWriter(remote_conn.getOutputStream()));
+         return;
+       }
+      catch (IOException e) { }
+      
+      try {
+         IvyExec ex = new IvyExec("cosestartserver");
+         ex.waitFor();
+       }
+      catch (IOException e) {
+         System.err.println("Can't start remote service");
+         System.exit(1);
+       }
+    }
+   System.err.println("Can't start remote service");
+   System.exit(1);
 }
 
 }       // end of class RemoteClient

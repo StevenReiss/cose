@@ -41,6 +41,7 @@ import java.util.List;
 
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
 
 abstract class ResultGroup extends ResultBase
 {
@@ -95,6 +96,14 @@ ResultGroup(CoseSource src)
       if (cr.containsText(text)) return true;
     }
    return false;
+}
+
+@Override protected void localOutputXml(IvyXmlWriter xw) {
+   for (CoseResult cr : inner_results) {
+      xw.begin("INNER");
+      cr.outputXml(xw);
+      xw.end("INNER");
+    }
 }
 
 }       // end of class ResultGroup

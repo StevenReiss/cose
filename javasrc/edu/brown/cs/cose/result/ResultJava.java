@@ -74,6 +74,7 @@ import org.eclipse.jface.text.Document;
 import edu.brown.cs.ivy.file.IvyLog;
 import edu.brown.cs.ivy.jcomp.JcompAst;
 import edu.brown.cs.ivy.jcomp.JcompType;
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
 import edu.brown.cs.cose.cosecommon.CoseConstants;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseSource;
@@ -1036,6 +1037,11 @@ static class JavaFileResult extends ResultFile {
       return findJavaExtendsName(code,str);
     }  
    
+   @Override protected void localOutputXml(IvyXmlWriter xw) {
+      xw.field("TYPE","JAVAFILE");
+      super.localOutputXml(xw);
+    }
+   
 }       // end of inner class JavaFileResult
 
 
@@ -1072,6 +1078,11 @@ static class JavaMethodResult extends ResultPart {
       return cloneJavaResult(this,o,data);
     }
    
+   @Override protected void localOutputXml(IvyXmlWriter xw) {
+      xw.field("TYPE","JAVAMETHOD");
+      super.localOutputXml(xw);
+    }
+   
 }       // end of inner class JavaMethodResult
 
 
@@ -1106,6 +1117,13 @@ static class JavaClassResult extends ResultPart {
    
    @Override public CoseResult cloneResult(Object o,Object data) {
       return cloneJavaResult(this,o,data);
+    }
+   
+   @Override protected void localOutputXml(IvyXmlWriter xw) {
+      xw.field("TYPE","JAVACLASS");
+      xw.field("ASTTYPE",ast_node.getNodeType());
+      xw.field("ASTCLASS",ast_node.getClass().getName());
+      super.localOutputXml(xw);
     }
    
 }       // end of inner class JavaClassResult
@@ -1276,6 +1294,15 @@ static class JavaPackageResult extends ResultGroup {
             addClasses(subatd,clsset,newpfx);
           }
        }
+    }
+   
+   @Override protected void localOutputXml(IvyXmlWriter xw) {
+      xw.field("TYPE","JAVAPACKAGE");
+      xw.field("BASEPACKAGE",base_package);
+      for (String s : used_packages) {
+         xw.textElement("PACKAGE",s);
+       }
+      super.localOutputXml(xw);
     }
    
 }       // end of inner class JavaPackageResult

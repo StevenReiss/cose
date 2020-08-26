@@ -106,32 +106,7 @@ public String getLicenseUid()                   { return license_uid; }
 
 @Override public CoseSource getBaseSource()     { return null; }
 
-@Override public boolean isRelatedRepository(CoseSource src,boolean exact)
-{
-   String full = getName();
-   String uri = src.getName();
-   if (full.equals(uri)) return true;
-   
-   int idx1 = full.indexOf(":");
-   int idx2 = full.lastIndexOf("/");
-   String pfx = full.substring(idx1+1,idx2);
-   int idx3 = pfx.indexOf("/blob/");
-   if (idx3 > 0) {
-      int idx4 = pfx.indexOf("/",idx3+7);
-      if (idx4 >= 0) pfx = pfx.substring(0,idx4+1);
-    }
-   if (uri.contains(pfx)) return true;  // same repo
-   if (exact) return false;
-   
-   String pf1 = full.substring(idx1+1,idx2);
-   int idx5 = pf1.indexOf("//");
-   int idx6 = pf1.indexOf("/",idx5+2);
-   int idx7 = pf1.indexOf("/",idx6+1);
-   String pf2 = pf1.substring(0,idx7);
-   if (uri.contains(pf2)) return true;
-   
-   return false;
-}
+
 
 
 

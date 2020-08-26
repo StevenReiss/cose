@@ -36,6 +36,7 @@
 package edu.brown.cs.cose.result;
 
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
 
 abstract class ResultFile extends ResultBase
 {
@@ -86,7 +87,10 @@ protected ResultFile(CoseSource src,String cnts)
 
 @Override public Object clearStructure()                { return null; }
 
-
+@Override protected void localOutputXml(IvyXmlWriter xw)
+{
+   xw.cdataElement("CONTENTS",file_contents);
+}
 
 
 }       // end of class ResultFile

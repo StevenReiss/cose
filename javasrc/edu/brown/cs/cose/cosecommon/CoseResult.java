@@ -38,6 +38,8 @@ package edu.brown.cs.cose.cosecommon;
 import java.util.Collection;
 import java.util.Set;
 
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
+
 public interface CoseResult extends CoseConstants
 {
 
@@ -84,6 +86,8 @@ boolean isCloned();
 
 CoseScores getScores(CoseRequest req);
 CoseScores getScores(CoseRequest req,Object struct);
+
+void outputXml(IvyXmlWriter xw);
 
 }       // end of interface CoseResult
 

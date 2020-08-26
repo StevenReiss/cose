@@ -35,7 +35,7 @@
 
 package edu.brown.cs.cose.result;
 
-
+import edu.brown.cs.ivy.xml.IvyXmlWriter;
 
 abstract class ResultPart extends ResultBase
 {
@@ -78,7 +78,11 @@ ResultPart(ResultFile ff,int start,int len)
    return getParent().getText().substring(start_position,end_position);
 }
 
-
+@Override protected void localOutputXml(IvyXmlWriter xw)
+{
+   xw.field("START",start_position);
+   xw.field("END",end_position);
+}
 
 }       // end of class ReesultPart
 

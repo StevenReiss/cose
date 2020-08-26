@@ -443,6 +443,11 @@ private void addSolutions(String code,CoseSource source)
 
    CoseResult cr = result_factory.createFileResult(source,code);
    if (cr == null) return;
+   if (cose_request.getCoseSearchType() == CoseSearchType.FILE) {
+      result_set.addResult(cr);
+      return;
+    }
+   
    for (CoseResult subfrag : cr.getResults(cose_request.getCoseSearchType())) {
       analyzeResult(subfrag);
       result_set.addResult(subfrag);
