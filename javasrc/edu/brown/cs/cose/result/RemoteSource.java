@@ -1,8 +1,8 @@
 /********************************************************************************/
 /*										*/
-/*		ResultFactory.java						*/
+/*		RemoteSource.java						*/
 /*										*/
-/*	Class to create the appropriate fragments				*/
+/*	Source from a remote server						*/
 /*										*/
 /********************************************************************************/
 /*	Copyright 2013 Brown University -- Steven P. Reiss		      */
@@ -35,16 +35,15 @@
 
 package edu.brown.cs.cose.result;
 
-import edu.brown.cs.cose.cosecommon.CoseResult;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.w3c.dom.Element;
 
-import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
 import edu.brown.cs.ivy.xml.IvyXml;
 
-
-public class ResultFactory implements ResultConstants
+public class RemoteSource implements CoseSource
 {
 
 
@@ -54,7 +53,17 @@ public class ResultFactory implements ResultConstants
 /*										*/
 /********************************************************************************/
 
-private CoseRequest for_request;
+private String	source_name;
+private String	display_name;
+private String	source_path;
+private int	source_length;
+private int	source_offset;
+private String	source_license;
+private String	source_project;
+private CoseSource base_source;
+private double	source_score;
+
+static private Map<String,RemoteSource> known_sources = new HashMap<>();
 
 
 
@@ -64,92 +73,106 @@ private CoseRequest for_request;
 /*										*/
 /********************************************************************************/
 
-public ResultFactory(CoseRequest cr)
-{
-   for_request = cr;
-}
-
-
-/********************************************************************************/
-/*										*/
-/*	Creation methods							*/
-/*										*/
-/********************************************************************************/
-
-public CoseResult createPackageResult(CoseSource src)
-{
-   switch (for_request.getLanguage()) {
-      case JAVA :
-	 return new ResultJava.JavaPackageResult(src);
-      case JAVASCRIPT :
-      case XML :
-      case OTHER :
-	 break;
-    }
-
-   return null;
-}
-
-
-public CoseResult createFileResult(CoseSource source,String code)
-{
-   switch (for_request.getLanguage()) {
-      case JAVA :
-	 code = for_request.editSource(code);
-	 return new ResultJava.JavaFileResult(source,code);
-      case JAVASCRIPT :
-      case XML :
-      case OTHER :
-	 return new ResultTextFile(source,code);
-    }
-
-   return null;
-}
-
-
-
-public CoseResult createResult(Element xml)
+public static synchronized RemoteSource createSource(Element xml)
 {
    if (xml == null) return null;
-   if (!IvyXml.isElement(xml,"RESULT")) {
-      xml = IvyXml.getChild(xml,"RESULT");
-      if (xml == null) return null;
+
+   String nm = IvyXml.getAttrString(xml,"DISPLAY");
+   RemoteSource rs = known_sources.get(nm);
+   if (rs == null) {
+      rs = new RemoteSource(xml);
+      known_sources.put(nm,rs);
     }
 
-   Element srcxml = IvyXml.getChild(xml,"SOURCE");
-   CoseSource src = RemoteSource.createSource(srcxml);
-   CoseResultType rtype = IvyXml.getAttrEnum(xml,"RESULTTYPE",CoseResultType.FILE);
-   String ftyp = IvyXml.getAttrString(xml,"TYPE");
-   if (ftyp.equals("CLONED")) {
-      // create cloned result
-      return null;
-    }
-   else {
-      switch (rtype) {
-	 case FILE :
-	    String cnts = IvyXml.getTextElement(xml,"CONTENTS");
-	    return createFileResult(src,cnts);
-	 case PACKAGE :
-	    CoseResult prslt = createPackageResult(src);
-	    for (Element innerxml : IvyXml.children(xml,"INNER")) {
-	       CoseResult inner = createResult(innerxml);
-	       if (inner != null) prslt.addInnerResult(inner);
-	     }
-	    return prslt;
-	 case METHOD :
-	 case CLASS :
-	    break;
-       }
-    }
-
-   return null;
+   return rs;
 }
 
 
-}	// end of class ResultFactory
+
+private RemoteSource(Element xml)
+{
+   source_name = IvyXml.getAttrString(xml,"NAME");
+   display_name = IvyXml.getAttrString(xml,"DISPLAY");
+   source_path = IvyXml.getAttrString(xml,"PATH");
+   source_length = IvyXml.getAttrInt(xml,"LENGTH");
+   source_offset = IvyXml.getAttrInt(xml,"OFFSET");
+   source_license = IvyXml.getAttrString(xml,"LICENSE");
+   source_project = IvyXml.getAttrString(xml,"PROJECT");
+   source_score = IvyXml.getAttrDouble(xml,"SCORE");
+   base_source = null;
+   Element base = IvyXml.getChild(xml,"BASE");
+   if (base != null) {
+      base_source = createSource(IvyXml.getChild(base,"SOURCE"));
+    }
+}
+
+
+
+/********************************************************************************/
+/*										*/
+/*	Abstract Method Implementations 					*/
+/*										*/
+/********************************************************************************/
+
+@Override public double getScore()
+{
+   return source_score;
+}
+
+
+@Override public String getPathName()
+{
+   return source_path;
+}
+
+
+@Override public String getProjectId()
+{
+   return source_project;
+}
+
+
+@Override public int getOffset()
+{
+   return source_offset;
+}
+
+
+@Override public int getLength()
+{
+   return source_length;
+}
+
+
+@Override public String getLicenseUid()
+{
+   return source_license;
+}
+
+
+@Override public CoseSource getBaseSource()
+{
+   return base_source;
+}
+
+
+@Override public String getName()
+{
+   return source_name;
+}
+
+
+@Override public String getDisplayName()
+{
+   return display_name;
+}
+
+
+
+}	// end of class RemoteSource
 
 
 
 
-/* end of ResultFactory.java */
+/* end of RemoteSource.java */
 
