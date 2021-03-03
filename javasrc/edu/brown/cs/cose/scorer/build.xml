@@ -14,7 +14,7 @@
       <pathelement location='${IVY}' />
       <pathelement location='${IVYLIB}/jsoup.jar' />
       <pathelement location='${IVYLIB}/json.jar' />
-      <fileset dir='${PRO}/ivy/lib/' includes='asm6.jar' />
+      <fileset dir='${PRO}/ivy/lib/' includes='asm.jar' />
       <fileset dir='${PRO}/ivy/lib/eclipsejar' includes='*.jar' />
    </path>
    <path id='test.classpath'>
@@ -22,7 +22,7 @@
       <pathelement location='${IVY}' />
       <pathelement location='${IVYLIB}/jsoup.jar' />
       <pathelement location='${IVYLIB}/json.jar' />
-      <fileset dir='${PRO}/ivy/lib/' includes='asm6.jar' />
+      <fileset dir='${PRO}/ivy/lib/' includes='asm.jar' />
       <fileset dir='${PRO}/ivy/lib/eclipsejar' includes='*.jar' />
    </path>
 
