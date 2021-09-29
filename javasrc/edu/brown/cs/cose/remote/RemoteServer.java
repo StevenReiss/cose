@@ -166,6 +166,8 @@ private boolean handleCommand(Element xml,IvyXmlWriter xw)
             case METHOD :
                cr.setCoseSearchType(CoseSearchType.FILE);
                break;
+            default :
+               break;
           }
          CoseMaster cm = CoseMaster.createMaster(cr);
          CoseDefaultResultSet rset = new CoseDefaultResultSet();

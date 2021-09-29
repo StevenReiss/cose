@@ -41,6 +41,7 @@ import org.w3c.dom.Element;
 
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseSource;
+import edu.brown.cs.cose.remote.RemoteSource;
 import edu.brown.cs.ivy.xml.IvyXml;
 
 

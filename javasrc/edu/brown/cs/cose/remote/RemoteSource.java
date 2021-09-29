@@ -33,7 +33,7 @@
 
 
 
-package edu.brown.cs.cose.result;
+package edu.brown.cs.cose.remote;
 
 import java.util.HashMap;
 import java.util.Map;
