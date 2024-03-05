@@ -202,7 +202,7 @@ List<URI> getSearchPageResults(Element jsoup)
       File zipdir = getZipDirectory(zippfx);
       File dataf = new File(zipdir,"DATA.zip");
       long dlm = dataf.lastModified();
-      URL url = new URL(archurl);
+      URL url = new URI(archurl).toURL();
       InputStream ins = url_cache.getCacheStream(url,this,dlm);
       if (ins != null) {
 	 URI repouri = new URI("/https://github.com/" + robj.getString("full_name"));

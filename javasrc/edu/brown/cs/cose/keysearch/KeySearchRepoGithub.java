@@ -564,7 +564,7 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
     }
 
    try {
-      URL url1 = new URL(ustr);
+      URL url1 = new URI(ustr).toURL();
       HttpURLConnection hc1 = (HttpURLConnection) url1.openConnection();
       hc1.setDoInput(true);
       hc1.setRequestProperty("Authorization",github_auth);
@@ -607,6 +607,9 @@ private static Object doGithubAuthenticate(String path,String type,Map<String,Ob
     }
    catch (JSONException e) {
       IvyLog.logE("COSE","JSON Error accessing github: " + e);
+    }
+   catch (URISyntaxException e) {
+      IvyLog.logE("COSE","Bad url given: "+ ustr + ": " + e);
     }
 
    return null;

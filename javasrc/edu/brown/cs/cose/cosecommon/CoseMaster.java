@@ -14,12 +14,15 @@ package edu.brown.cs.cose.cosecommon;
 
 import java.lang.reflect.Constructor;
 
+import org.w3c.dom.Element;
+
 import edu.brown.cs.ivy.file.IvyLog;
 
 public interface CoseMaster extends CoseConstants
 {
 
 CoseResultSet computeSearchResults(CoseResultSet crs);
+CoseResult createResult(Element xml);
 
 
 
@@ -37,6 +40,9 @@ static public CoseMaster createMaster(CoseRequest req)
       return null;
     }
 }
+
+
+
 
 
 static public CoseResultEditor createJavaEditor() {
