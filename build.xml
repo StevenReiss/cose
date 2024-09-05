@@ -20,9 +20,6 @@
       <pathelement location='/pro/ivy/lib/ivy.jar' />
    </path>
 
-   <available file='/pro/java/linux/jdk1.8.0/jre/lib/rt.jar' type='file' property='j8'
-       value='/pro/java/linux/jdk1.8.0/jre/lib/rt.jar' />
-
    <target name='clean'>
      <delete dir='java'/>
    </target>

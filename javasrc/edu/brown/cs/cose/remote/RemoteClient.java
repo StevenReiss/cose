@@ -44,10 +44,10 @@ import java.util.Collection;
 import org.w3c.dom.Element;
 
 import edu.brown.cs.cose.cosecommon.CoseDefaultResultSet;
+import edu.brown.cs.cose.cosecommon.CoseMaster;
 import edu.brown.cs.cose.cosecommon.CoseRequest;
 import edu.brown.cs.cose.cosecommon.CoseResult;
 import edu.brown.cs.cose.cosecommon.CoseResultSet;
-import edu.brown.cs.cose.result.ResultFactory;
 import edu.brown.cs.ivy.exec.IvyExec;
 import edu.brown.cs.ivy.xml.IvyXml;
 import edu.brown.cs.ivy.xml.IvyXmlReader;
@@ -134,9 +134,10 @@ public CoseResultSet computeSearchResults(CoseRequest cr,CoseResultSet crs)
 
 private void setupResults(CoseRequest req,CoseResultSet crs,Element rslts)
 {
-   ResultFactory rf = new ResultFactory(req);
+   CoseMaster cm = CoseMaster.createMaster(req);
+   
    for (Element r : IvyXml.children(rslts,"RESULT")) {
-      CoseResult cr = rf.createResult(r);
+      CoseResult cr = cm.createResult(r);
       if (cr == null) continue;
       switch (req.getCoseSearchType()) {
          case CLASS :
@@ -221,6 +222,8 @@ private void checkRunning()
    System.err.println("Can't start remote service");
    System.exit(1);
 }
+
+
 
 }       // end of class RemoteClient
 

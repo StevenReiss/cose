@@ -243,6 +243,11 @@ public KeySearchMaster(CoseRequest req)
 }
 
 
+@Override public CoseResult createResult(Element xml)
+{
+   return result_factory.createResult(xml);
+}
+
 
 private void getSolutionsFromRepo(KeySearchRepo repo,int ct)
 {
