@@ -222,7 +222,7 @@ private URI getRepoSearchURI(List<String> keys,CoseSearchLanguage lang)
     }
    try {
       if (langstr != null) q += " language:" + langstr;
-      q += "&per_page=500";
+      q += "&per_page=100";
       URI uri = new URI(GITHUB_SCHEME,"api.github.com","/search/repositories",q,null);
       return uri;
     }

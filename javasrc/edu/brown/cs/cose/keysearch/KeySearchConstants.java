@@ -45,7 +45,7 @@ import edu.brown.cs.cose.cosecommon.CoseSource;
 
 
 interface KeySearchConstants extends CoseConstants {
- 
+
 
 
 /********************************************************************************/
@@ -54,15 +54,15 @@ interface KeySearchConstants extends CoseConstants {
 /*										*/
 /********************************************************************************/
 
-String CACHE_DIRECTORY = "/ws/volfred/s6/cache";
+String CACHE_DIRECTORY = "/data/fred4/s6/cache";
 
 String CACHE_URL_FILE = "URL";
 String CACHE_DATA_FILE = "DATA";
 
 long CACHE_TIME_OUT = 1000L*60L*60L*24L*365L;
 
-String ZIPCACHE_DIRECTORY = "/ws/volfred/s6/zips";
-String TOKEN_FILE = "/ws/volfred/s6/tokens";
+String ZIPCACHE_DIRECTORY = "/data/fred4/s6/zips";
+String TOKEN_FILE = "/data/fred4/s6/tokens";
 
 
 Charset CHAR_SET = Charset.forName("UTF-8");
@@ -98,7 +98,7 @@ class KeySearchClassData {
 
    URI getURI() 			{ return class_uri; }
    String getPath()			{ return class_path; }
-   CoseSource getSource() 		{ return class_source; }
+   CoseSource getSource()		{ return class_source; }
    String getCode()			{ return class_code; }
 
 }	// end of inner class KeySearchClassData
@@ -108,8 +108,8 @@ class KeySearchClassData {
 interface KeySearchAuthorizer {
 
    String getAuthorization();
-   
-}       // end of inner interface KeySearchAuthorizer
+
+}	// end of inner interface KeySearchAuthorizer
 
 
 }	// end of interface KeySearchConstants

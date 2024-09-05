@@ -71,7 +71,7 @@ enum CoseScopeType {
 enum CoseSearchEngine {
    GITHUB,
    CODEEX,
-   GITZIP, 
+   GITZIP,
    GITREPO,
    SEARCHCODE,
 }
@@ -87,21 +87,21 @@ enum CoseResultType {
 
 
 /********************************************************************************/
-/*                                                                              */
-/*     License information                                                      */
-/*                                                                              */
+/*										*/
+/*     License information							*/
+/*										*/
 /********************************************************************************/
 
 String LICENSE_DATABASE = "s6";
 
-String SCORE_DATA_FILE = "/ws/volfred/s6/scores.data";
+String SCORE_DATA_FILE = "/data/fred4/s6/scores.data";
 
 
 
 /********************************************************************************/
-/*                                                                              */
-/*      Common utility methods                                                  */
-/*                                                                              */
+/*										*/
+/*	Common utility methods							*/
+/*										*/
 /********************************************************************************/
 
 static String [] PREFIX_PATHS = { "org", "com", "edu", "sun", "java", "oracle", "google" };
@@ -118,25 +118,25 @@ public static boolean isRelatedPackage(String p1,String p2)
    if (p1.equals(p2)) return true;
    if (p1.startsWith(p2)) return true;
    else if (p2.startsWith(p1)) return true;
-   
+
    Set<String> pfxset = new HashSet<>();
    for (String s : PREFIX_PATHS) pfxset.add(s);
-   
+
    String pfx = null;
    int minlen = Math.min(p1.length(),p2.length());
    for (int i = 0; i < minlen; i++) {
       if (p1.charAt(i) != p2.charAt(i)) {
-         pfx = p1.substring(0, i);
-         break;
+	 pfx = p1.substring(0, i);
+	 break;
        }
     }
    if (pfx == null) pfx = p1.substring(0, minlen);
    if (pfx.length() == 0) return false;
-   
+
    int idx = pfx.lastIndexOf(".");
    if (idx < 0) return false;
    pfx = pfx.substring(0,idx);
-   
+
    String [] parts = pfx.split("\\.");
    // String [] p1parts = p1.split("\\.");
    // String [] p2parts = p2.split("\\.");
@@ -149,7 +149,7 @@ public static boolean isRelatedPackage(String p1,String p2)
    int match = parts.length - ign;
    if (match == 0) return false;
    // if (match < psize - 2) return false;
-   
+
    return true;
 }
 
